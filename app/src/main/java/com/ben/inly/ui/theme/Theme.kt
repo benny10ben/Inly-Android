@@ -18,6 +18,11 @@ val MoonlitSilver  = Color(0xFFB3B3B3)
 val CloudVeil      = Color(0xFFE0E0E0)
 val Fog            = Color(0xFFCCCCCC)
 
+val Black            = Color(0xFF000000)
+val White            = Color(0xFFffffff)
+
+
+
 /**
  * Sometimes the standard Material 3 color slots aren't quite enough.
  * This structure holds custom extended colors specific to the app's design components.
@@ -48,9 +53,9 @@ val LocalInlyExtendedColors = staticCompositionLocalOf {
 private val LightColorScheme = lightColorScheme(
     primary          = CharcoalNoir,
     onPrimary        = CloudVeil,
-    background       = CloudVeil,
+    background       = White,
     onBackground     = CharcoalNoir,
-    surface          = Fog,
+    surface          = CloudVeil,
     onSurface        = CharcoalNoir,
     surfaceVariant   = MoonlitSilver,
     onSurfaceVariant = IroncladGrey,
@@ -60,9 +65,9 @@ private val LightColorScheme = lightColorScheme(
 private val DarkColorScheme = darkColorScheme(
     primary          = CloudVeil,
     onPrimary        = CharcoalNoir,
-    background       = CharcoalNoir,
+    background       = Black,
     onBackground     = CloudVeil,
-    surface          = IroncladGrey,
+    surface          = CharcoalNoir,
     onSurface        = CloudVeil,
     surfaceVariant   = IroncladGrey,
     onSurfaceVariant = MoonlitSilver,
