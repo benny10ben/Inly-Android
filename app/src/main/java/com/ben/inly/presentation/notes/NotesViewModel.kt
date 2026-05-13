@@ -1,15 +1,23 @@
 package com.ben.inly.presentation.notes
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ben.inly.data.local.prefs.SettingsManager
 import com.ben.inly.data.local.room.FolderEntity
 import com.ben.inly.data.local.room.NoteMetadataEntity
-import com.ben.inly.domain.model.* import com.ben.inly.domain.repository.NoteRepository
+import com.ben.inly.domain.model.*
+import com.ben.inly.domain.repository.NoteRepository
+import com.ben.inly.domain.util.TaskExtractionHelper
+import com.ben.inly.domain.util.VoiceTaskRecognizer
+import com.ben.inly.presentation.reminders.ReminderScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
 
@@ -24,7 +32,8 @@ enum class SortOrder { ASCENDING, DESCENDING }
 @HiltViewModel
 class NotesViewModel @Inject constructor(
     private val repository: NoteRepository,
-    private val settingsManager: SettingsManager
+    private val settingsManager: SettingsManager,
+    private val reminderScheduler: ReminderScheduler
 ) : ViewModel() {
 
     val sortType: StateFlow<SortType> = settingsManager.sortTypeFlow
@@ -315,5 +324,102 @@ class NotesViewModel @Inject constructor(
             repository.saveStandaloneNote(metadata, NoteContent(blocks = emptyList()))
             onNoteCreated(newNoteId)
         }
+    }
+
+    private var voiceRecognizer: VoiceTaskRecognizer? = null
+
+    private val _isVoiceTaskListening = MutableStateFlow(false)
+    val isVoiceTaskListening: StateFlow<Boolean> = _isVoiceTaskListening.asStateFlow()
+
+    private val _voiceTaskPartialText = MutableStateFlow("")
+    val voiceTaskPartialText: StateFlow<String> = _voiceTaskPartialText.asStateFlow()
+
+    fun startVoiceTaskListening(context: Context) {
+        if (voiceRecognizer == null) {
+            voiceRecognizer = VoiceTaskRecognizer(context.applicationContext)
+        }
+
+        _isVoiceTaskListening.value = true
+        _voiceTaskPartialText.value = "Initializing model..."
+
+        voiceRecognizer?.initModel { success ->
+            if (success) {
+                _voiceTaskPartialText.value = "Listening..."
+                voiceRecognizer?.startListening(
+                    onPartial = { _voiceTaskPartialText.value = it },
+                    onResult = { result ->
+                        _isVoiceTaskListening.value = false
+                        processVoiceTask(result)
+                    },
+                    onError = { error ->
+                        _isVoiceTaskListening.value = false
+                        _voiceTaskPartialText.value = "Error: ${error.message}"
+                    }
+                )
+            } else {
+                _isVoiceTaskListening.value = false
+            }
+        }
+    }
+
+    fun stopVoiceTaskListening() {
+        voiceRecognizer?.stopListening()
+        _isVoiceTaskListening.value = false
+    }
+
+    /**
+     * Smart Routing: Extracts the task, figures out the date from the text,
+     * opens that specific Daily Note in the background, appends the task, and saves it.
+     */
+    private fun processVoiceTask(transcript: String) {
+        if (transcript.isBlank()) return
+
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val extractionResult = TaskExtractionHelper.extractTaskAndDate(transcript)
+
+            val targetDateString = if (extractionResult.timestamp != null) {
+                Instant.ofEpochMilli(extractionResult.timestamp)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+                    .toString() // Returns "YYYY-MM-DD"
+            } else {
+                LocalDate.now().toString()
+            }
+
+            val content = repository.getDailyNote(targetDateString)
+
+            val currentBlocks = mutableListOf<NoteBlock>()
+            if (content != null && content.blocks.isNotEmpty()) {
+                currentBlocks.addAll(content.blocks)
+            } else {
+                currentBlocks.add(TextBlock(id = UUID.randomUUID().toString(), text = ""))
+            }
+
+            val newVoiceTaskBlock = CheckboxBlock(
+                id = UUID.randomUUID().toString(),
+                text = extractionResult.taskText,
+                isChecked = false,
+                reminderTimestamp = extractionResult.timestamp,
+                indentationLevel = 0
+            )
+
+            currentBlocks.add(newVoiceTaskBlock)
+
+            repository.saveDailyNote(targetDateString, NoteContent(blocks = currentBlocks))
+
+            extractionResult.timestamp?.let { timeInMillis ->
+                reminderScheduler.schedule(
+                    blockId = newVoiceTaskBlock.id,
+                    noteTitle = "Daily: $targetDateString",
+                    text = extractionResult.taskText,
+                    timestamp = timeInMillis
+                )
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        voiceRecognizer?.destroy()
     }
 }
