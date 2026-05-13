@@ -160,7 +160,7 @@ data class DocumentBlock(
     override val isUnderlined: Boolean = false
 ) : NoteBlock()
 
-// --- Database specific models ---
+// --- Database specific model ---
 
 @Serializable
 @SerialName("database")
