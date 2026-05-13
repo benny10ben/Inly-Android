@@ -55,11 +55,8 @@ fun InlyBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(
-                        bottom = WindowInsets.ime
-                            .asPaddingValues()
-                            .calculateBottomPadding() + 12.dp
-                    )
+                    .imePadding()
+                    .padding(bottom = 12.dp)
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
