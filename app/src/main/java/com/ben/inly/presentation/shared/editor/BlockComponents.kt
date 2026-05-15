@@ -509,7 +509,6 @@ fun NoteBlockItem(
                                         text = timeText,
                                         fontFamily = BricolageFont,
                                         fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onBackground
                                     )
                                 }
