@@ -16,7 +16,8 @@ object TaskExtractionHelper {
         "i need to ",
         "please remind me to ",
         "add a reminder to ",
-        "remind me "
+        "remind me ",
+        "please add a reminder to "
     )
 
     fun extractTaskAndDate(transcript: String): TaskExtractionResult {
