@@ -10,7 +10,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 // Base color palette
-val CharcoalNoir   = Color(0xFF131313)
+val CharcoalNoir   = Color(0xFF0d0d0d)
 val IroncladGrey   = Color(0xFF262626)
 val IroncladGrey2  = Color(0xFF333333)
 val UrbanFog       = Color(0xFF848484)
