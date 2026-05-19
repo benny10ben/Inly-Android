@@ -1,0 +1,20 @@
+package com.ben.inly.data.local.room
+
+import android.content.Context
+import androidx.room.Room
+import androidx.room.RoomDatabase
+
+/**
+ * The Android-specific implementation that provides the file path.
+ */
+fun getDatabaseBuilder(context: Context): RoomDatabase.Builder<AppDatabase> {
+    val dbFile = context.getDatabasePath("inly_database.db")
+    return Room.databaseBuilder(
+        context = context.applicationContext,
+        name = dbFile.absolutePath
+    )
+}
+
+actual fun getRoomDatabase(builder: RoomDatabase.Builder<AppDatabase>): AppDatabase {
+    return builder.build()
+}

@@ -1,0 +1,191 @@
+package com.ben.inly
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.lifecycleScope
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.network.ktor3.KtorNetworkFetcherFactory
+import coil3.request.crossfade
+import com.ben.inly.data.local.room.NoteMetadataEntity
+import com.ben.inly.domain.model.BookmarkBlock
+import com.ben.inly.domain.model.NoteContent
+import com.ben.inly.domain.repository.NoteRepository
+import com.ben.inly.presentation.InlyApp
+import com.ben.inly.ui.theme.InlyTheme
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.android.ext.android.inject
+import org.koin.androidx.compose.KoinAndroidContext
+import java.util.UUID
+
+class MainActivity : ComponentActivity() {
+
+    private val repository: NoteRepository by inject()
+    private val pickImage = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> imagePickerCallback?.invoke(uri?.toString() ?: "") }
+
+    private val pickDocument = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> documentPickerCallback?.invoke(uri?.toString() ?: "") }
+
+    private var imagePickerCallback: ((String) -> Unit)? = null
+    private var documentPickerCallback: ((String) -> Unit)? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        handleIntent(intent)
+
+        setContent {
+            setSingletonImageLoaderFactory { context ->
+                ImageLoader.Builder(context)
+                    .components {
+                        add(KtorNetworkFetcherFactory(HttpClient(OkHttp)))
+                    }
+                    .crossfade(true)
+                    .build()
+            }
+
+            InlyTheme {
+                Surface(color = Color.Transparent, modifier = Modifier.fillMaxSize()) {
+                    KoinAndroidContext {
+                        InlyApp(
+                            onPickImage = { callback ->
+                                imagePickerCallback = callback
+                                pickImage.launch("image/*")
+                            },
+                            onPickDocument = { callback ->
+                                documentPickerCallback = callback
+                                pickDocument.launch("*/*")
+                            },
+                            onOpenFile = { filePath, mimeType ->
+                                android.util.Log.d("FileOpen", "filePath=$filePath  mimeType=$mimeType")
+                                try {
+                                    val file = java.io.File(filePath)
+                                    android.util.Log.d("FileOpen", "exists=${file.exists()} size=${file.length()}")
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                                        this@MainActivity,
+                                        "${applicationContext.packageName}.fileprovider",
+                                        file
+                                    )
+                                    android.util.Log.d("FileOpen", "uri=$uri")
+                                    val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(uri, mimeType)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    startActivity(Intent.createChooser(viewIntent, "Open Document"))
+                                } catch (e: Exception) {
+                                    android.util.Log.e("FileOpen", "EXCEPTION: ${e::class.simpleName}: ${e.message}")
+                                    Toast.makeText(this@MainActivity, "Failed to open file: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Catches external share intents when the app is already open in the background.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+            if (!sharedText.isNullOrBlank()) {
+                saveToInbox(sharedText)
+            }
+        }
+    }
+
+    /**
+     * Parses incoming text to find URLs, creates an Inbox note if one doesn't exist,
+     * and drops the link directly into the Inbox.
+     */
+    private fun saveToInbox(sharedText: String) {
+        val urlRegex = "(?i)\\b((?:https?://|www\\d{0,3}[.]|[a-z0-9.\\-]+[.][a-z]{2,4}/)(?:[^\\s()<>]+|\\((?:[^\\s()<>]+|\\([^\\s()<>]+\\))\\))+(?:\\((?:[^\\s()<>]+|\\([^\\s()<>]+\\))\\)|[^\\s`!()\\[\\]{};:'\".,<>?«»“”‘’]))".toRegex()
+        val extractedUrl = urlRegex.find(sharedText)?.value ?: sharedText
+
+        Toast.makeText(this, "Saving to Inbox...", Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val allNotes: List<NoteMetadataEntity> = repository.getAllStandaloneNotes().first()
+                var inboxNote: NoteMetadataEntity? = allNotes.find { it.title.equals("Inbox", ignoreCase = true) }
+
+                val noteId: String
+                val content: NoteContent
+
+                if (inboxNote == null) {
+                    noteId = UUID.randomUUID().toString()
+                    inboxNote = NoteMetadataEntity(
+                        noteId = noteId,
+                        title = "Inbox",
+                        icon = "📥",
+                        folderId = null,
+                        isDaily = false,
+                        dateString = null,
+                        createdAt = System.currentTimeMillis(),
+                        updatedAt = System.currentTimeMillis(),
+                        filePath = "note_$noteId.json",
+                        snippet = "Saved links and ideas."
+                    )
+                    content = NoteContent(blocks = emptyList())
+                } else {
+                    noteId = inboxNote.noteId
+                    content = repository.getNoteContent(noteId) ?: NoteContent(blocks = emptyList())
+                }
+
+                val newBlock = BookmarkBlock(
+                    id = UUID.randomUUID().toString(),
+                    indentationLevel = 0,
+                    url = extractedUrl,
+                    title = "Loading preview...",
+                    description = null,
+                    previewImageUrl = null
+                )
+
+                val updatedBlocks = content.blocks + newBlock
+                repository.saveStandaloneNote(
+                    inboxNote.copy(updatedAt = System.currentTimeMillis()),
+                    NoteContent(blocks = updatedBlocks)
+                )
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Saved to Inbox!", Toast.LENGTH_SHORT).show()
+                    if (intent?.action == Intent.ACTION_SEND) {
+                        finish()
+                    }
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Failed to save link.", Toast.LENGTH_SHORT).show()
+                    if (intent?.action == Intent.ACTION_SEND) finish()
+                }
+            }
+        }
+    }
+}
