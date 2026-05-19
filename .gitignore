@@ -1,24 +1,30 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
+# Build Artifacts
 /build
+/app/release/
 /captures
+.gradle
 .externalNativeBuild
 .cxx
+META-INF/
+
+# IDE files
+/.idea/
+*.iml
+.DS_Store
+
+# Secrets & Configs
 local.properties
-**/*.hprof
+secrets.properties
 *.jks
 *.keystore
 google-services.json
+
+# Dependencies
 gradle/wrapper/gradle-wrapper.jar
-/app/release/
-/.idea/
-app/src/main/assets/models/*.bin
-secrets.properties
+
+# Logs/Diagnostics
+**/*.hprof
+
+# Skiko libraries
+*.so
+*.so.sha256
