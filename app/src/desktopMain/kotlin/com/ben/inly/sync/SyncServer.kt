@@ -11,14 +11,20 @@ import io.ktor.server.response.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import com.ben.inly.domain.sync.SyncEnvelope
+import com.ben.inly.domain.sync.SyncPayload
 import com.ben.inly.domain.sync.SyncRepository
 import io.ktor.server.auth.*
+
+import kotlinx.serialization.json.Json // Make sure this is imported
 
 fun startSyncServer(settingsManager: SettingsManager, syncRepository: SyncRepository) {
     val port = settingsManager.getSyncPort().let { if (it <= 0) SyncConstants.DEFAULT_PORT else it }
 
     embeddedServer(Netty, host = "0.0.0.0", port = port) {
-        install(ContentNegotiation) { json() }
+        // 1. Add ignoreUnknownKeys to prevent future crashes if models change
+        install(ContentNegotiation) {
+            json(Json { ignoreUnknownKeys = true })
+        }
 
         install(Authentication) {
             bearer(SyncConstants.AUTH_REALM) {
@@ -32,14 +38,17 @@ fun startSyncServer(settingsManager: SettingsManager, syncRepository: SyncReposi
 
         routing {
             authenticate(SyncConstants.AUTH_REALM) {
+
                 get(SyncConstants.ROUTE_FETCH) {
                     val changes = syncRepository.collectLocalChanges()
-                    call.respond(changes)
+                    // 2. Wrap the outgoing list in the Payload class
+                    call.respond(SyncPayload(changes))
                 }
 
                 post(SyncConstants.ROUTE_PUSH) {
-                    val changes = call.receive<List<SyncEnvelope>>()
-                    syncRepository.applyRemoteChanges(changes)
+                    // 3. Expect the Payload class coming in
+                    val payload = call.receive<SyncPayload>()
+                    syncRepository.applyRemoteChanges(payload.changes)
                     call.respond(io.ktor.http.HttpStatusCode.OK)
                 }
             }

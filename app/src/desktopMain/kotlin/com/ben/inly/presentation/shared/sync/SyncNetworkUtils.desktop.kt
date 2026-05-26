@@ -3,12 +3,36 @@ package com.ben.inly.presentation.shared.sync
 import java.net.InetAddress
 import java.util.UUID
 
+import java.net.NetworkInterface
+
 actual fun getLocalNetworkIp(): String {
-    return try {
-        InetAddress.getLocalHost().hostAddress
+    try {
+        val interfaces = NetworkInterface.getNetworkInterfaces()
+        while (interfaces.hasMoreElements()) {
+            val networkInterface = interfaces.nextElement()
+
+            // Skip loopback and disabled interfaces
+            if (networkInterface.isLoopback || !networkInterface.isUp) continue
+
+            // Skip common virtual machine/docker interfaces
+            val name = networkInterface.name.lowercase()
+            if (name.startsWith("docker") || name.startsWith("br-") || name.startsWith("vnet") || name.startsWith("virbr")) {
+                continue
+            }
+
+            val addresses = networkInterface.inetAddresses
+            while (addresses.hasMoreElements()) {
+                val address = addresses.nextElement()
+                // Pick the first IPv4 local address we find
+                if (address.isSiteLocalAddress && !address.hostAddress.contains(":")) {
+                    return address.hostAddress
+                }
+            }
+        }
     } catch (e: Exception) {
-        "127.0.0.1"
+        e.printStackTrace()
     }
+    return "127.0.0.1" // Fallback
 }
 
 actual fun generateSecureToken(): String {

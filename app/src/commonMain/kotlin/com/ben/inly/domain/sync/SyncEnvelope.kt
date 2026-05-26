@@ -5,7 +5,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class SyncType {
     STANDALONE_NOTE,
-    DAILY_NOTE
+    DAILY_NOTE,
+    TAG,
+    FOLDER
 }
 
 @Serializable
@@ -16,4 +18,9 @@ data class SyncEnvelope(
     val isDeleted: Boolean,
     val metadataJson: String,
     val contentJson: String
+)
+
+@Serializable
+data class SyncPayload(
+    val changes: List<SyncEnvelope>
 )
