@@ -97,6 +97,7 @@ import coil3.request.ImageRequest
 import coil3.network.NetworkHeaders
 import coil3.network.httpHeaders
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import com.ben.inly.domain.util.isDesktopPlatform
@@ -1298,6 +1299,10 @@ fun DatabaseBlockView(
     var filterPriority by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
 
+    val visibleColumns = remember(block.columns) {
+        block.columns.filter { !it.isDeleted }
+    }
+
     fun closeSheet() {
         currentSheet = DbSheetType.NONE
         activeRowId = null
@@ -1312,7 +1317,7 @@ fun DatabaseBlockView(
     }
 
     val visibleRows = remember(block.rows, block.activeSorts, block.activeFilters) {
-        var result = block.rows
+        var result = block.rows.filter { !it.isDeleted }
 
         block.activeFilters.forEach { filter ->
             result = result.filter { row ->
@@ -1333,7 +1338,7 @@ fun DatabaseBlockView(
         }
 
         block.activeSorts.firstOrNull()?.let { sort ->
-            val colType = block.columns.find { it.id == sort.columnId }?.type
+            val colType = visibleColumns.find { it.id == sort.columnId }?.type
             result = if (colType == ColumnType.NUMBER) {
                 if (sort.isAscending) result.sortedBy<DatabaseRow, Double> { it.cells[sort.columnId]?.toDoubleOrNull() ?: Double.MAX_VALUE }
                 else result.sortedByDescending<DatabaseRow, Double> { it.cells[sort.columnId]?.toDoubleOrNull() ?: Double.MIN_VALUE }
@@ -1348,7 +1353,7 @@ fun DatabaseBlockView(
     // --- REUSABLE SHEET CONTENT ---
     val sheetTitle = when (currentSheet) {
         DbSheetType.CELL_OPTIONS -> "Cell Actions"
-        DbSheetType.COLUMN_OPTIONS -> block.columns.find { it.id == activeColId }?.name ?: "Column Options"
+        DbSheetType.COLUMN_OPTIONS -> visibleColumns.find { it.id == activeColId }?.name ?: "Column Options"
         DbSheetType.RENAME -> "Rename Column"
         DbSheetType.FORMULA -> "Edit Formula"
         DbSheetType.SORT -> "Sort"
@@ -1361,10 +1366,10 @@ fun DatabaseBlockView(
     val sheetContent = @Composable {
         when (currentSheet) {
             DbSheetType.CELL_OPTIONS -> {
-                val col = block.columns.find { it.id == activeColId }
+                val col = visibleColumns.find { it.id == activeColId }
                 val row = block.rows.find { it.id == activeRowId }
                 if (col != null && row != null) {
-                    val colIndex = block.columns.indexOf(col)
+                    val colIndex = visibleColumns.indexOf(col)
                     val rowIndex = block.rows.indexOf(row)
 
                     DbOptionRow(Icons.Default.ArrowUpward, "Insert Row Above") { applyAction { actions.onAddDbRowAt(block.id, rowIndex) } }
@@ -1383,9 +1388,9 @@ fun DatabaseBlockView(
             }
 
             DbSheetType.COLUMN_OPTIONS -> {
-                val col = block.columns.find { it.id == activeColId }
+                val col = visibleColumns.find { it.id == activeColId }
                 if (col != null) {
-                    val colIndex = block.columns.indexOf(col)
+                    val colIndex = visibleColumns.indexOf(col)
 
                     DbOptionRow(Icons.Default.Edit, "Rename Column") {
                         textInput = col.name
@@ -1409,7 +1414,7 @@ fun DatabaseBlockView(
                         }
                     }
 
-                    if (colIndex < block.columns.lastIndex) {
+                    if (colIndex < visibleColumns.lastIndex) {
                         DbOptionRow(Icons.Default.ArrowForward, "Move Right") {
                             applyAction { actions.onReorderDbColumns(block.id, colIndex, colIndex + 1) }
                         }
@@ -1554,7 +1559,7 @@ fun DatabaseBlockView(
 
                     Button(
                         onClick = {
-                            val c = block.columns.find { it.id == activeColId }
+                            val c = visibleColumns.find { it.id == activeColId }
                             if (c != null && textInput.isNotBlank()) {
                                 applyAction { actions.onUpdateDbColumn(block.id, c.id, textInput.trim(), c.type) }
                             }
@@ -1582,7 +1587,7 @@ fun DatabaseBlockView(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
                 ) {
-                    block.columns.filter { it.id != activeColId }.forEach { c ->
+                    visibleColumns.filter { it.id != activeColId }.forEach { c ->
                         SuggestionChip(
                             onClick = { textInput += "prop(\"${c.name}\") " },
                             label = { Text(c.name, fontFamily = BricolageFont, fontSize = 13.sp) },
@@ -1669,8 +1674,8 @@ fun DatabaseBlockView(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).clickable {
-                        val idx = block.columns.indexOfFirst { it.id == activeColId }
-                        activeColId = block.columns[(idx + 1) % block.columns.size].id
+                        val idx = visibleColumns.indexOfFirst { it.id == activeColId }
+                        activeColId = visibleColumns[(idx + 1) % visibleColumns.size].id
                     }
                 ) {
                     Row(
@@ -1679,7 +1684,7 @@ fun DatabaseBlockView(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = block.columns.find { it.id == activeColId }?.name ?: "",
+                            text = visibleColumns.find { it.id == activeColId }?.name ?: "",
                             fontFamily = BricolageFont,
                             fontSize = 15.sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -1719,7 +1724,7 @@ fun DatabaseBlockView(
             }
 
             DbSheetType.FILTER -> {
-                val activeCol = block.columns.find { it.id == activeColId }
+                val activeCol = visibleColumns.find { it.id == activeColId }
                 val isCheckbox = activeCol?.type == ColumnType.CHECKBOX
                 val isNumber = activeCol?.type == ColumnType.NUMBER
 
@@ -1735,8 +1740,8 @@ fun DatabaseBlockView(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).clickable {
-                        val idx = block.columns.indexOfFirst { it.id == activeColId }
-                        activeColId = block.columns[(idx + 1) % block.columns.size].id
+                        val idx = visibleColumns.indexOfFirst { it.id == activeColId }
+                        activeColId = visibleColumns[(idx + 1) % visibleColumns.size].id
                         filterOperator = "contains"
                         textInput = ""
                     }
@@ -1915,32 +1920,31 @@ fun DatabaseBlockView(
                     val filteredTags = globalTags.filter { it.name.contains(tagSearchQuery, ignoreCase = true) }
                     val exactMatchExists = globalTags.any { it.name.equals(tagSearchQuery.trim(), ignoreCase = true) }
 
-                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
 
                         if (tagSearchQuery.isNotBlank() && !exactMatchExists) {
-                            item {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            val colors = listOf("#E03E3E", "#D9730D", "#DFAB01", "#0F7B6C", "#0B6E99", "#6940A5", "#9065B0")
-                                            val newTagId = actions.onCreateGlobalTag(tagSearchQuery.trim(), colors.random())
-
-                                            currentTagIds.add(newTagId)
-                                            actions.onUpdateDbCell(block.id, activeRowId!!, activeColId!!, currentTagIds.joinToString(","))
-                                            tagSearchQuery = ""
-                                        }
-                                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                                    Spacer(Modifier.width(12.dp))
-                                    Text("Create \"${tagSearchQuery.trim()}\"", fontFamily = BricolageFont, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
-                                }
+                            // Remove 'item { }' wrapper
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val colors = listOf("#E03E3E", "#D9730D", "#DFAB01", "#0F7B6C", "#0B6E99", "#6940A5", "#9065B0")
+                                        val newTagId = actions.onCreateGlobalTag(tagSearchQuery.trim(), colors.random())
+                                        currentTagIds.add(newTagId)
+                                        actions.onUpdateDbCell(block.id, activeRowId!!, activeColId!!, currentTagIds.joinToString(","))
+                                        tagSearchQuery = ""
+                                    }
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text("Create \"${tagSearchQuery.trim()}\"", fontFamily = BricolageFont, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
                             }
                         }
 
-                        items(filteredTags) { tag ->
+                        // CHANGE 'items(filteredTags) { tag ->' TO A FOREACH LOOP:
+                        filteredTags.forEach { tag ->
                             val isSelected = currentTagIds.contains(tag.tagId)
                             val tagColor = try {
                                 Color(tag.colorHex.removePrefix("#").toLong(16) or 0xFF000000)
@@ -1976,7 +1980,8 @@ fun DatabaseBlockView(
                             }
                         }
 
-                        item { Spacer(Modifier.height(16.dp)) }
+                        // Remove 'item { }' wrapper
+                        Spacer(Modifier.height(16.dp))
                     }
                 }
             }
@@ -1987,9 +1992,10 @@ fun DatabaseBlockView(
                     val currentFiles = row.cells[activeColId]?.split(",")?.filter { it.isNotBlank() }?.toMutableList() ?: mutableListOf()
                     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
 
-                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
 
-                        items(currentFiles) { fileUri ->
+                        // CHANGE 'items(currentFiles) { fileUri ->' TO A FOREACH LOOP:
+                        currentFiles.forEach { fileUri ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -2026,24 +2032,25 @@ fun DatabaseBlockView(
                             }
                         }
 
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        val newFile = "mock_file_${Clock.System.now().toEpochMilliseconds()}.pdf"
-                                        val combined = (currentFiles + newFile).joinToString(",")
-                                        actions.onUpdateDbCell(block.id, activeRowId!!, activeColId!!, combined)
-                                    }
-                                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(12.dp))
-                                Text("Attach a new file", fontFamily = BricolageFont, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
-                            }
+                        // Remove 'item { }' wrapper
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    val newFile = "mock_file_${Clock.System.now().toEpochMilliseconds()}.pdf"
+                                    val combined = (currentFiles + newFile).joinToString(",")
+                                    actions.onUpdateDbCell(block.id, activeRowId!!, activeColId!!, combined)
+                                }
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Attach a new file", fontFamily = BricolageFont, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
                         }
-                        item { Spacer(Modifier.height(16.dp)) }
+
+                        // Remove 'item { }' wrapper
+                        Spacer(Modifier.height(16.dp))
                     }
                 }
             }
@@ -2190,8 +2197,8 @@ fun DatabaseBlockView(
                         shape = RoundedCornerShape(8.dp),
                         color = if (hasSort) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent,
                         modifier = Modifier.clickable(enabled = !inSelectionMode) {
-                            if (block.columns.isNotEmpty()) {
-                                activeColId = block.activeSorts.firstOrNull()?.columnId ?: block.columns.first().id
+                            if (visibleColumns.isNotEmpty()) {
+                                activeColId = block.activeSorts.firstOrNull()?.columnId ?: visibleColumns.first().id
                                 currentSheet = DbSheetType.SORT
                             }
                         }
@@ -2215,8 +2222,8 @@ fun DatabaseBlockView(
                         shape = RoundedCornerShape(8.dp),
                         color = if (hasFilter) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent,
                         modifier = Modifier.clickable(enabled = !inSelectionMode) {
-                            if (block.columns.isNotEmpty()) {
-                                activeColId = block.columns.first().id
+                            if (visibleColumns.isNotEmpty()) {
+                                activeColId = visibleColumns.first().id
                                 textInput = ""
                                 filterOperator = "contains"
                                 currentSheet = DbSheetType.FILTER
@@ -2245,7 +2252,7 @@ fun DatabaseBlockView(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 block.activeFilters.forEach { filter ->
-                    val colName = block.columns.find { it.id == filter.columnId }?.name ?: "?"
+                    val colName = visibleColumns.find { it.id == filter.columnId }?.name ?: "?"
                     val label = when (filter.operator) {
                         "not_empty" -> "$colName is not empty"
                         "empty"     -> "$colName is empty"
@@ -2303,7 +2310,7 @@ fun DatabaseBlockView(
                             .height(IntrinsicSize.Max)
                             .defaultMinSize(minHeight = 44.dp)
                         ) {
-                            block.columns.forEachIndexed { index, col ->
+                            visibleColumns.forEachIndexed { index, col ->
                                 val activeSort = block.activeSorts.find { it.columnId == col.id }
                                 val typeIcon = when (col.type) {
                                     ColumnType.TEXT -> Icons.Default.Subject
@@ -2385,7 +2392,7 @@ fun DatabaseBlockView(
                                 .height(IntrinsicSize.Max)
                                 .defaultMinSize(minHeight = 44.dp)
                             ) {
-                                block.columns.forEach { col ->
+                                visibleColumns.forEach { col ->
                                     val cellValue = row.cells[col.id] ?: ""
                                     val isHighlighted = currentSheet == DbSheetType.CELL_OPTIONS && activeRowId == row.id && activeColId == col.id
 
