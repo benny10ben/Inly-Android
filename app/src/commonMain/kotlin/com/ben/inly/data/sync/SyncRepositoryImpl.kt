@@ -31,7 +31,6 @@ class SyncRepositoryImpl(
             try {
                 val decryptedMetaJson = encryptionManager.decryptPayload(envelope.metadataJson, syncKey)
 
-                // THE FIX: Only try to decrypt if the contentJson actually has encrypted data
                 val decryptedContentJson = if (envelope.contentJson.isNotEmpty()) {
                     encryptionManager.decryptPayload(envelope.contentJson, syncKey)
                 } else {
@@ -61,7 +60,6 @@ class SyncRepositoryImpl(
                                         remoteContent
                                     )
                                 } else {
-                                    // THE FIX: Fetch the local content and merge it before saving!
                                     val localContent = repository.getNoteContent(envelope.entityId)
                                     val smartMergedContent = NoteMergeHelper.mergeNoteContent(localContent, remoteContent)
 
@@ -73,7 +71,6 @@ class SyncRepositoryImpl(
                         }
                     }
                     SyncType.TAG -> {
-                        // NEW CODE: Handle incoming tags
                         val remoteTag = json.decodeFromString<TagEntity>(decryptedMetaJson)
                         repository.insertOrUpdateTag(remoteTag.tagId, remoteTag.name, remoteTag.colorHex)
                     }
@@ -116,9 +113,8 @@ class SyncRepositoryImpl(
             )
         }
 
-        // 2. Collect Tags (NEW CODE)
-        val allTags = repository.getAllTags().first() // Make sure you have this function in your repository
-        val modifiedTags = allTags.filter { it.createdAt > lastSyncTime } // Assuming createdAt acts as updatedAt for tags
+        val allTags = repository.getAllTags().first()
+        val modifiedTags = allTags.filter { it.createdAt > lastSyncTime }
 
         modifiedTags.forEach { tag ->
             val encryptedTag = encryptionManager.encryptPayload(json.encodeToString(tag), syncKey)
@@ -127,10 +123,10 @@ class SyncRepositoryImpl(
                 SyncEnvelope(
                     entityId = tag.tagId,
                     entityType = SyncType.TAG,
-                    metadataJson = encryptedTag, // We put the tag data here
-                    contentJson = "", // Tags don't have separate content files
+                    metadataJson = encryptedTag,
+                    contentJson = "",
                     updatedAt = tag.createdAt,
-                    isDeleted = false // Tags usually aren't soft-deleted in this architecture
+                    isDeleted = false
                 )
             )
         }

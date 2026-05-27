@@ -621,7 +621,6 @@ abstract class BaseEditorViewModel(
         modifyBlocks { list ->
             list.map { db ->
                 if (db.id == blockId && db is DatabaseBlock) {
-                    // THE FIX: Mark the column as deleted, but leave the row cells alone!
                     val updatedCols = db.columns.map { col ->
                         if (col.id == colId) col.copy(isDeleted = true) else col
                     }
@@ -636,7 +635,6 @@ abstract class BaseEditorViewModel(
         modifyBlocks { list ->
             list.map { db ->
                 if (db.id == blockId && db is DatabaseBlock) {
-                    // THE FIX: Map the row to isDeleted = true instead of filtering it out
                     val updatedRows = db.rows.map { row ->
                         if (row.id == rowId) row.copy(isDeleted = true) else row
                     }
