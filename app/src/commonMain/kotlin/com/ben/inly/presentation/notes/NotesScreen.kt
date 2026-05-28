@@ -57,7 +57,7 @@ import com.ben.inly.presentation.shared.components.KmpBackHandler
 import com.ben.inly.presentation.shared.sync.generateSecureToken
 import com.ben.inly.presentation.shared.sync.getLocalNetworkIp
 import com.ben.inly.presentation.shared.trash.TrashScreen
-import com.ben.inly.presentation.sync.SyncViewModel
+import com.ben.inly.presentation.shared.sync.SyncViewModel
 import com.ben.inly.ui.theme.BricolageFont
 import com.ben.inly.ui.theme.LocalAppIsDark
 import dev.chrisbanes.haze.HazeState

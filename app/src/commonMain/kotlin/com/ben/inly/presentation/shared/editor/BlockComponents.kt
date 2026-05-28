@@ -15,10 +15,33 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
@@ -29,10 +52,70 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Functions
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Subject
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.SyncAlt
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,18 +130,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -70,12 +160,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import coil3.compose.AsyncImage
+import coil3.network.httpHeaders
 import coil3.request.crossfade
+import com.ben.inly.data.local.file.FileStorageManager
 import com.ben.inly.data.local.room.TagEntity
-import com.ben.inly.domain.model.*
+import com.ben.inly.domain.model.BookmarkBlock
+import com.ben.inly.domain.model.BulletedListBlock
+import com.ben.inly.domain.model.CheckboxBlock
+import com.ben.inly.domain.model.CodeBlock
+import com.ben.inly.domain.model.ColumnType
+import com.ben.inly.domain.model.DatabaseBlock
+import com.ben.inly.domain.model.DatabaseRow
+import com.ben.inly.domain.model.DocumentBlock
+import com.ben.inly.domain.model.HeadingBlock
+import com.ben.inly.domain.model.ImageBlock
+import com.ben.inly.domain.model.NoteBlock
+import com.ben.inly.domain.model.NumberedListBlock
+import com.ben.inly.domain.model.TextBlock
+import com.ben.inly.domain.model.ToggleBlock
+import com.ben.inly.domain.model.VoiceBlock
+import com.ben.inly.domain.util.isDesktopPlatform
 import com.ben.inly.presentation.shared.components.InlyBottomSheet
 import com.ben.inly.ui.theme.BricolageFont
 import com.ben.inly.ui.theme.LocalAppIsDark
@@ -91,16 +195,8 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import okio.Path.Companion.toPath
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.network.NetworkHeaders
-import coil3.network.httpHeaders
-import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerEventType
-import com.ben.inly.domain.util.isDesktopPlatform
+import org.koin.compose.koinInject
+import java.io.File
 
 
 @Composable
@@ -679,20 +775,15 @@ fun BookmarkBlockView(
                 )
             }
         } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .clip(DefaultBlockShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), DefaultBlockShape)
-            ) {
-                // LEFT: Text Content
+            val commonContainerModifier = Modifier
+                .fillMaxWidth()
+                .clip(DefaultBlockShape)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), DefaultBlockShape)
+
+            val textContent = @Composable { modifier: Modifier ->
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(14.dp),
+                    modifier = modifier.padding(14.dp),
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
@@ -742,8 +833,9 @@ fun BookmarkBlockView(
                         )
                     }
                 }
+            }
 
-                // RIGHT: Preview Image
+            val imageContent = @Composable { modifier: Modifier ->
                 if (block.previewImageUrl != null) {
                     coil3.compose.AsyncImage(
                         model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
@@ -758,16 +850,34 @@ fun BookmarkBlockView(
                             .build(),
                         contentDescription = "Preview",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .aspectRatio(2f)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                        modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
                         onState = { state ->
                             if (state is coil3.compose.AsyncImagePainter.State.Error) {
                                 println("Coil failed to load bookmark image: ${state.result.throwable.message}")
                             }
                         }
                     )
+                }
+            }
+
+            if (isDesktopPlatform) {
+                Row(
+                    modifier = commonContainerModifier.height(120.dp)
+                ) {
+                    textContent(Modifier.weight(1f).fillMaxHeight())
+
+                    if (block.previewImageUrl != null) {
+                        imageContent(Modifier.weight(0.35f).fillMaxHeight())
+                    }
+                }
+            } else {
+                Column(
+                    modifier = commonContainerModifier
+                ) {
+                    if (block.previewImageUrl != null) {
+                        imageContent(Modifier.fillMaxWidth().height(140.dp))
+                    }
+                    textContent(Modifier.fillMaxWidth())
                 }
             }
         }
@@ -985,6 +1095,8 @@ fun ImageBlockView(
     onDelete: () -> Unit = {},
     onDownload: () -> Unit = {}
 ) {
+    // THE FIX 1: Grab the FileStorageManager to resolve paths dynamically
+    val fileStorageManager = koinInject<FileStorageManager>()
     var showFullScreen by remember { mutableStateOf(false) }
 
     if (block.localFilePath == null) {
@@ -1013,7 +1125,11 @@ fun ImageBlockView(
             }
         }
     } else {
-        val safePath = block.localFilePath.removePrefix("file://")
+        // THE FIX 2: Resolve the absolute path for the current OS!
+        val absolutePath = remember(block.localFilePath) {
+            fileStorageManager.getAbsoluteMediaPath(block.localFilePath)
+        }
+        val imageFile = remember(absolutePath) { File(absolutePath) }
 
         Box(
             modifier = Modifier
@@ -1033,7 +1149,8 @@ fun ImageBlockView(
                 )
         ) {
             coil3.compose.AsyncImage(
-                model = safePath.toPath(),
+                // THE FIX 3: Pass the resolved File object directly to Coil
+                model = imageFile,
                 contentDescription = "Note Image",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -1061,7 +1178,8 @@ fun ImageBlockView(
                             .haze(state = dialogHazeState)
                     ) {
                         coil3.compose.AsyncImage(
-                            model = safePath.toPath(),
+                            // THE FIX 4: Apply it to the full-screen dialog as well
+                            model = imageFile,
                             contentDescription = "Full Screen Image",
                             modifier = Modifier
                                 .fillMaxSize()
@@ -1097,6 +1215,8 @@ fun ImageBlockView(
                             contentScale = ContentScale.Fit
                         )
                     }
+
+                    // ... (Keep the rest of your Full Screen Dialog UI exactly as is)
 
                     Row(
                         modifier = Modifier
