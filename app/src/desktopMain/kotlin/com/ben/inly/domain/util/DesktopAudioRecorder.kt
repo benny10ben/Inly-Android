@@ -72,18 +72,17 @@ class DesktopAudioRecorder : AudioRecorder {
 
         val durationSecs = ((System.currentTimeMillis() - recordingStartTime) / 1000).toInt()
 
-        val savedPath = currentFile?.absolutePath
+        val savedName = currentFile?.name
         currentFile = null
 
-        return savedPath?.let { Pair(it, durationSecs) }
+        return savedName?.let { Pair(it, durationSecs) }
     }
 
     override fun play(fileName: String, onCompletion: () -> Unit) {
         stopPlaying()
 
         try {
-            val file = if (fileName.contains(File.separator)) File(fileName) else File(audioDir, fileName)
-
+            val file = File(audioDir, fileName)
             if (!file.exists()) {
                 println("Error: Audio file not found at ${file.absolutePath}")
                 onCompletion()
