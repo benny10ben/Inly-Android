@@ -15,6 +15,7 @@ import com.ben.inly.domain.model.NoteContent
 import com.ben.inly.domain.model.NumberedListBlock
 import com.ben.inly.domain.model.TextBlock
 import com.ben.inly.domain.model.ToggleBlock
+import com.ben.inly.domain.sync.AutoSyncTrigger // <-- CORRECTED IMPORT
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -63,7 +64,6 @@ class NoteRepositoryImpl(
                 }
             }.trim().take(120)
 
-            // THE FIX: Unify local and remote metadata!
             val baseMeta = remoteMeta ?: existing
 
             val metadata = NoteMetadataEntity(
@@ -81,6 +81,8 @@ class NoteRepositoryImpl(
                 trashedAt = baseMeta?.trashedAt
             )
             noteDao.insertOrUpdateMetadata(metadata)
+
+            AutoSyncTrigger.requestSync()
         }
 
     override fun searchDailyNotes(query: String): Flow<List<NoteMetadataEntity>> = noteDao.searchDailyNotes(query)
@@ -99,30 +101,53 @@ class NoteRepositoryImpl(
             val fileName = "note_${metadata.noteId}.json"
             fileStorageManager.saveNoteContent(fileName, content)
             noteDao.insertOrUpdateMetadata(metadata.copy(filePath = fileName))
+
+            AutoSyncTrigger.requestSync()
         }
 
     override suspend fun deleteNote(noteId: String, filePath: String) {
         withContext(Dispatchers.IO) {
             noteDao.deleteNoteMetadata(noteId)
             fileStorageManager.deleteNoteContent(filePath)
+
+            AutoSyncTrigger.requestSync()
         }
     }
 
     override suspend fun getNoteById(noteId: String): NoteMetadataEntity? = noteDao.getNoteById(noteId)
+
     override fun getAllFolders(): Flow<List<FolderEntity>> = folderDao.getAllFolders()
+
     override suspend fun insertFolder(folder: FolderEntity) =
-        withContext(Dispatchers.IO) { folderDao.insertFolder(folder) }
+        withContext(Dispatchers.IO) {
+            folderDao.insertFolder(folder)
+            AutoSyncTrigger.requestSync()
+        }
+
     override suspend fun deleteFolder(folderId: String) =
-        withContext(Dispatchers.IO) { folderDao.deleteFolder(folderId) }
+        withContext(Dispatchers.IO) {
+            folderDao.deleteFolder(folderId)
+            AutoSyncTrigger.requestSync()
+        }
+
     override suspend fun restoreNote(noteId: String) =
-        withContext(Dispatchers.IO) { noteDao.restoreNote(noteId) }
+        withContext(Dispatchers.IO) {
+            noteDao.restoreNote(noteId)
+            AutoSyncTrigger.requestSync()
+        }
 
     override suspend fun cleanupOldTrashedNotes() = withContext(Dispatchers.IO) {
         val thirtyDaysInMillis = 30L * 24 * 60 * 60 * 1000
         val cutoffTime = System.currentTimeMillis() - thirtyDaysInMillis
         val oldNotes = noteDao.getOldTrashedNotes(cutoffTime)
+        var deletedAny = false
         for (note in oldNotes) {
             deleteNote(note.noteId, note.filePath)
+            deletedAny = true
+        }
+
+        if (deletedAny) {
+            AutoSyncTrigger.requestSync()
         }
     }
 
@@ -138,10 +163,14 @@ class NoteRepositoryImpl(
                     createdAt = System.currentTimeMillis()
                 )
             )
+            AutoSyncTrigger.requestSync()
         }
 
     override suspend fun deleteTag(tagId: String) =
-        withContext(Dispatchers.IO) { tagDao.deleteTag(tagId) }
+        withContext(Dispatchers.IO) {
+            tagDao.deleteTag(tagId)
+            AutoSyncTrigger.requestSync()
+        }
 
     override suspend fun getNotesModifiedSince(timestamp: Long): List<NoteMetadataEntity> {
         return noteDao.getNotesModifiedSince(timestamp)
