@@ -81,13 +81,14 @@ class SyncRepositoryImpl(
 
                         if (localMeta == null) {
                             if (!envelope.isDeleted) {
-                                repository.saveStandaloneNote(remoteMeta, remoteContent)
                                 downloadMissingMedia(remoteContent)
 
                                 if (remoteMeta.coverImagePath != null) {
                                     val file = File(fileStorageManager.getAbsoluteMediaPath(remoteMeta.coverImagePath))
                                     if (!file.exists()) syncClient.downloadMedia(remoteMeta.coverImagePath, file)
                                 }
+
+                                repository.saveStandaloneNote(remoteMeta, remoteContent)
                                 com.ben.inly.domain.util.SyncEventBus.emitSyncCompleted(envelope.entityId)
                             }
                         } else if (envelope.isDeleted && envelope.updatedAt > localMeta.updatedAt) {
@@ -150,8 +151,9 @@ class SyncRepositoryImpl(
                         val localMeta = repository.getDailyNoteMetadata(dateString)
 
                         if (localMeta == null) {
-                            repository.saveDailyNote(dateString, remoteContent, envelope.updatedAt, remoteMeta)
                             downloadMissingMedia(remoteContent)
+
+                            repository.saveDailyNote(dateString, remoteContent, envelope.updatedAt, remoteMeta)
                             com.ben.inly.domain.util.SyncEventBus.emitSyncCompleted(dateString)
                         } else {
                             val localContent = repository.getDailyNote(dateString)
