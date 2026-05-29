@@ -12,10 +12,15 @@ import coil3.util.DebugLogger
 import com.ben.inly.data.local.prefs.SettingsManager
 import com.ben.inly.di.desktopModule
 import com.ben.inly.di.sharedModule
+import com.ben.inly.domain.sync.AutoSyncTrigger
 import com.ben.inly.domain.sync.SyncRepository
 import com.ben.inly.presentation.InlyApp
+import com.ben.inly.presentation.shared.sync.SyncViewModel
 import com.ben.inly.sync.startSyncServer
 import com.ben.inly.ui.theme.InlyTheme
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import java.awt.FileDialog
@@ -43,7 +48,12 @@ fun main(args: Array<String>) = application {
         val syncRepository = koin.get<SyncRepository>()
 
         startSyncServer(settingsManager, syncRepository)
+
+        val discoveryManager = koin.get<com.ben.inly.sync.discovery.SyncDiscoveryManager>()
+        val port = settingsManager.getSyncPort().let { if (it <= 0) 8080 else it }
+        discoveryManager.startBroadcasting(port, "Inly Desktop")
     }
+
     Window(
         onCloseRequest = ::exitApplication,
         title = "Inly",
