@@ -97,6 +97,8 @@ fun StandaloneNoteScreen(
     var showOptionsMenu by remember { mutableStateOf(false) }
     val globalTags by viewModel.globalTags.collectAsState()
 
+    val noteUpdatedAt by viewModel.noteUpdatedAt.collectAsState()
+
     SelectionModeObserver(isSelectionMode, onSelectionModeChange)
 
     KmpBackHandler(enabled = isSelectionMode) {
@@ -228,6 +230,7 @@ fun StandaloneNoteScreen(
                             noteTitle = noteTitle,
                             coverImagePath = coverImagePath,
                             showIconPicker = showIconPicker,
+                            noteUpdatedAt = noteUpdatedAt,
                             onDismissIconPicker = { showIconPicker = false },
                             onIconChange = { viewModel.updateIcon(it) },
                             onTitleChange = { viewModel.updateTitle(it) },
@@ -360,6 +363,7 @@ private fun NoteHeader(
     noteTitle: String,
     coverImagePath: String?,
     showIconPicker: Boolean,
+    noteUpdatedAt: Long,
     onDismissIconPicker: () -> Unit,
     onIconChange: (String?) -> Unit,
     onTitleChange: (String) -> Unit,
@@ -380,8 +384,16 @@ private fun NoteHeader(
                 Box(modifier = Modifier.fillMaxWidth()) {
                     if (coverImagePath != null) {
                         val absolutePath = fileStorageManager.getAbsoluteMediaPath(coverImagePath)
+                        val file = java.io.File(absolutePath)
+
+                        val request = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
+                            .data(file)
+                            .memoryCacheKey("$absolutePath-$noteUpdatedAt")
+                            .diskCacheKey("$absolutePath-$noteUpdatedAt")
+                            .build()
+
                         AsyncImage(
-                            model = java.io.File(absolutePath),
+                            model = request,
                             contentDescription = "Cover Image",
                             modifier = Modifier.fillMaxWidth().height(210.dp),
                             contentScale = ContentScale.Crop

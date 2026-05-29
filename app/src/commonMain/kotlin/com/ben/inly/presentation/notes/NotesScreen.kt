@@ -1278,12 +1278,19 @@ fun NoteCard(
     ) {
         Column(Modifier.fillMaxSize()) {
 
-            // Cover image area
             Box(modifier = Modifier.fillMaxWidth().height(coverHeight)) {
                 if (note.coverImagePath != null) {
                     val absolutePath = fileStorageManager.getAbsoluteMediaPath(note.coverImagePath)
+                    val file = java.io.File(absolutePath)
+
+                    val request = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
+                        .data(file)
+                        .memoryCacheKey("$absolutePath-${note.updatedAt}")
+                        .diskCacheKey("$absolutePath-${note.updatedAt}")
+                        .build()
+
                     AsyncImage(
-                        model = java.io.File(absolutePath),
+                        model = request,
                         contentDescription = "Cover",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

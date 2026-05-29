@@ -14,10 +14,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-/**
- * Handles the logic for standard, free-form notes.
- * Manages the core editor blocks alongside the note's title, cover image, icon, and trash status.
- */
 class StandaloneEditorViewModel constructor(
     repository: NoteRepository,
     mediaStorageHelper: MediaStorageHelper,
@@ -39,6 +35,9 @@ class StandaloneEditorViewModel constructor(
     private val _coverImagePath = MutableStateFlow<String?>(null)
     val coverImagePath: StateFlow<String?> = _coverImagePath.asStateFlow()
 
+    private val _noteUpdatedAt = MutableStateFlow(0L)
+    val noteUpdatedAt: StateFlow<Long> = _noteUpdatedAt.asStateFlow()
+
     private var currentMetadata: NoteMetadataEntity? = null
 
     init {
@@ -54,6 +53,7 @@ class StandaloneEditorViewModel constructor(
                         _noteIcon.value = updatedMeta.icon
                         _isFavorite.value = updatedMeta.isFavorite
                         _coverImagePath.value = updatedMeta.coverImagePath
+                        _noteUpdatedAt.value = updatedMeta.updatedAt
                     }
 
                     val content = withContext(Dispatchers.IO) { repository.getNoteContent(currentId) }
@@ -71,7 +71,6 @@ class StandaloneEditorViewModel constructor(
         val meta = currentMetadata ?: return
         val snapshot = _blocks.value.toList()
 
-        // Generates a quick text preview for the dashboard UI
         val previewText = snapshot.joinToString(" ") { block ->
             when(block) {
                 is TextBlock -> block.text
@@ -115,6 +114,7 @@ class StandaloneEditorViewModel constructor(
                 _noteIcon.value = currentMetadata?.icon
                 _isFavorite.value = currentMetadata?.isFavorite ?: false
                 _coverImagePath.value = currentMetadata?.coverImagePath
+                _noteUpdatedAt.value = currentMetadata?.updatedAt ?: 0L
 
                 val content = repository.getNoteContent(noteId)
                 val existingBlocks = content?.blocks ?: emptyList()
