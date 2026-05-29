@@ -1,16 +1,11 @@
 package com.ben.inly.presentation.notes.overview.images
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerDefaults
-import androidx.compose.foundation.pager.PagerSnapDistance
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -18,14 +13,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -38,7 +30,6 @@ import com.ben.inly.presentation.shared.editor.ImageBlockView
 import com.ben.inly.ui.theme.BricolageFont
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
-import kotlin.math.abs
 
 private val SelectionHighlightShape = RoundedCornerShape(12.dp)
 
@@ -84,77 +75,93 @@ fun ImagesScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
                 .consumeWindowInsets(paddingValues)
         ) {
-            Column(modifier = Modifier.fillMaxSize().haze(state = hazeState)) {
 
-                ImagesTopBar(
-                    isSelectionMode = isSelectionMode,
-                    onBackClick = {
-                        if (isSelectionMode) viewModel.clearSelection() else onNavigateBack()
-                    },
-                    onAddClick = onTriggerImagePicker
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .haze(state = hazeState),
+                contentPadding = PaddingValues(
+                    top = if (isDesktopPlatform) 80.dp else 110.dp,
+                    bottom = 120.dp
                 )
+            ) {
+                item {
+                    Text(
+                        text = "Images",
+                        fontFamily = BricolageFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 32.sp,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 8.dp)
+                    )
+                }
 
-                Text(
-                    text = "Images",
-                    fontFamily = BricolageFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 32.sp,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-                )
-
-                Box(modifier = Modifier.weight(1f)) {
-                    if (isLoading) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(top = 100.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         }
-                    } else if (groupedBlocks.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No images saved yet.", fontFamily = BricolageFont, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .imePadding(),
-                            contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp),
-                            verticalArrangement = Arrangement.spacedBy(36.dp)
+                    }
+                } else if (groupedBlocks.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(top = 100.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            items(groupedBlocks, key = { it.monthYear }) { group ->
-                                Column {
-                                    Text(
-                                        text = group.monthYear,
-                                        fontFamily = BricolageFont,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp,
-                                        color = MaterialTheme.colorScheme.onBackground,
-                                        modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 12.dp)
-                                    )
+                            Text(
+                                "No images saved yet.",
+                                fontFamily = BricolageFont,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    items(groupedBlocks, key = { it.monthYear }) { group ->
+                        Column(
+                            modifier = Modifier
+                                .background(MaterialTheme.colorScheme.background)
+                                .padding(bottom = 36.dp)
+                        ) {
+                            Text(
+                                text = group.monthYear,
+                                fontFamily = BricolageFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(bottom = 12.dp)
+                            )
 
-                                    if (isDesktopPlatform) {
-                                        DesktopImageGrid(
-                                            blocks = group.blocks,
-                                            selectedBlockIds = selectedBlockIds,
-                                            isSelectionMode = isSelectionMode,
-                                            viewModel = viewModel
-                                        )
-                                    } else {
-                                        CenteredImageCarousel(
-                                            blocks = group.blocks,
-                                            selectedBlockIds = selectedBlockIds,
-                                            isSelectionMode = isSelectionMode,
-                                            viewModel = viewModel
-                                        )
-                                    }
-                                }
-                            }
+                            ImageGrid(
+                                blocks = group.blocks,
+                                selectedBlockIds = selectedBlockIds,
+                                isSelectionMode = isSelectionMode,
+                                viewModel = viewModel
+                            )
                         }
                     }
                 }
             }
+
+            ImagesTopBar(
+                modifier = Modifier.align(Alignment.TopCenter),
+                isSelectionMode = isSelectionMode,
+                onBackClick = {
+                    if (isSelectionMode) viewModel.clearSelection() else onNavigateBack()
+                },
+                onAddClick = onTriggerImagePicker
+            )
 
             BlockSelectionPill(
                 isVisible = isSelectionMode,
@@ -174,133 +181,79 @@ fun ImagesScreen(
                 hazeState = hazeState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .imePadding()
                     .then(if (isDesktopPlatform) Modifier.padding(bottom = 16.dp) else Modifier.navigationBarsPadding())
             )
         }
     }
 }
 
-/**
- * Custom Desktop Grid View for images.
- * Displays a standard 3-column chunked layout instead of the mobile carousel.
- */
 @Composable
-fun DesktopImageGrid(
+fun ImageGrid(
     blocks: List<ImageBlock>,
     selectedBlockIds: Set<String>,
     isSelectionMode: Boolean,
     viewModel: ImagesViewModel
 ) {
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 16.dp)
     ) {
-        val columns = 3
-        val chunkedBlocks = blocks.chunked(columns)
+        val minItemWidth = 120f
+        val spacing = 12f
+        val columns = maxOf(2, ((maxWidth.value + spacing) / (minItemWidth + spacing)).toInt())
 
-        chunkedBlocks.forEach { rowBlocks ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                rowBlocks.forEach { block ->
-                    val isSelected = selectedBlockIds.contains(block.id)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            val chunkedBlocks = blocks.chunked(columns)
 
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                    ) {
-                        ImageBlockView(
-                            block = block,
-                            inSelectionMode = isSelectionMode,
-                            onToggleSelection = { viewModel.toggleSelection(block.id) },
-                            onRequestPicker = {},
-                            onDelete = { viewModel.deleteImageBlock(block.id) }
-                        )
+            chunkedBlocks.forEach { rowBlocks ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowBlocks.forEach { block ->
+                        val isSelected = selectedBlockIds.contains(block.id)
 
-                        if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .border(3.dp, MaterialTheme.colorScheme.primary, SelectionHighlightShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                        ) {
+                            ImageBlockView(
+                                block = block,
+                                inSelectionMode = isSelectionMode,
+                                onToggleSelection = { viewModel.toggleSelection(block.id) },
+                                onRequestPicker = {},
+                                onDelete = { viewModel.deleteImageBlock(block.id) }
                             )
+
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .border(3.dp, MaterialTheme.colorScheme.primary, SelectionHighlightShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                )
+                            }
                         }
                     }
+
+                    val emptySpaces = columns - rowBlocks.size
+                    repeat(emptySpaces) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .background(MaterialTheme.colorScheme.background)
+                        )
+                    }
                 }
-                val emptySpaces = columns - rowBlocks.size
-                repeat(emptySpaces) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-/**
- * Custom horizontal scroller for images.
- * Modifies the fling behavior to allow swiping past multiple images quickly instead of snapping one by one.
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun CenteredImageCarousel(
-    blocks: List<ImageBlock>,
-    selectedBlockIds: Set<String>,
-    isSelectionMode: Boolean,
-    viewModel: ImagesViewModel
-) {
-    val pagerState = rememberPagerState(pageCount = { blocks.size })
-
-    HorizontalPager(
-        state = pagerState,
-        contentPadding = PaddingValues(horizontal = 48.dp),
-        pageSpacing = 0.dp,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-        flingBehavior = PagerDefaults.flingBehavior(
-            state = pagerState,
-            pagerSnapDistance = PagerSnapDistance.atMost(10)
-        )
-    ) { page ->
-        val block = blocks[page]
-        val isSelected = selectedBlockIds.contains(block.id)
-
-        val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-        val absOffset = abs(pageOffset)
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .zIndex(1f - absOffset)
-                .graphicsLayer {
-                    val scale = 1f - (absOffset * 0.15f).coerceAtMost(0.15f)
-                    scaleX = scale
-                    scaleY = scale
-
-                    val sign = if (pageOffset > 0) 1f else -1f
-                    translationX = sign * (absOffset * 40.dp.toPx())
-
-                    alpha = 1f - (absOffset * 0.4f).coerceAtMost(0.4f)
-                }
-        ) {
-            ImageBlockView(
-                block = block,
-                inSelectionMode = isSelectionMode,
-                onToggleSelection = { viewModel.toggleSelection(block.id) },
-                onRequestPicker = {},
-                onDelete = { viewModel.deleteImageBlock(block.id) }
-            )
-
-            if (isSelected) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .padding(vertical = 4.dp)
-                        .border(3.dp, MaterialTheme.colorScheme.primary, SelectionHighlightShape)
-                )
             }
         }
     }
@@ -308,6 +261,7 @@ fun CenteredImageCarousel(
 
 @Composable
 private fun ImagesTopBar(
+    modifier: Modifier = Modifier,
     isSelectionMode: Boolean,
     onBackClick: () -> Unit,
     onAddClick: () -> Unit
@@ -316,10 +270,10 @@ private fun ImagesTopBar(
     val iconTintColor = MaterialTheme.colorScheme.onBackground
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .then(if (isDesktopPlatform) Modifier else Modifier.statusBarsPadding())
-            .padding(top = if (isDesktopPlatform) 14.dp else 18.dp, start = 18.dp, end = 18.dp),
+            .padding(top = if (isDesktopPlatform) 14.dp else 18.dp, start = 16.dp, end = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
