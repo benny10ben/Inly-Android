@@ -17,6 +17,71 @@ import java.util.Locale
 class NativeVoiceRecognizer(private val context: Context) : VoiceRecognizer {
     private var speechRecognizer: SpeechRecognizer? = null
 
+    private var onPartialCallback: ((String) -> Unit)? = null
+    private var onResultCallback: ((String) -> Unit)? = null
+    private var onErrorCallback: ((String) -> Unit)? = null
+
+    // Create a reusable listener
+    private val recognitionListener = object : RecognitionListener {
+        override fun onReadyForSpeech(params: Bundle?) {}
+        override fun onBeginningOfSpeech() {}
+        override fun onRmsChanged(rmsdB: Float) {}
+        override fun onBufferReceived(buffer: ByteArray?) {}
+        override fun onEndOfSpeech() {}
+
+        override fun onError(error: Int) {
+            val message = when (error) {
+                SpeechRecognizer.ERROR_NO_MATCH,
+                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No match"
+
+                // Human-friendly error translations
+                SpeechRecognizer.ERROR_AUDIO -> "Couldn't hear clearly. Please try again."
+                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission required."
+                SpeechRecognizer.ERROR_NETWORK,
+                SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network error. Please check your connection."
+                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> {
+                    speechRecognizer?.cancel()
+                    "Voice service is busy. Please wait."
+                }
+                SpeechRecognizer.ERROR_CLIENT,
+                SpeechRecognizer.ERROR_SERVER -> "Voice service disconnected. Please try again."
+                else -> "Something went wrong. Please try again."
+            }
+            onErrorCallback?.invoke(message)
+        }
+
+        override fun onResults(results: Bundle?) {
+            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+            if (!matches.isNullOrEmpty()) {
+                onResultCallback?.invoke(matches[0])
+            } else {
+                onErrorCallback?.invoke("No match")
+            }
+        }
+
+        override fun onPartialResults(partialResults: Bundle?) {
+            val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+            if (!matches.isNullOrEmpty()) {
+                onPartialCallback?.invoke(matches[0])
+            }
+        }
+
+        override fun onEvent(eventType: Int, params: Bundle?) {}
+    }
+
+    private fun initRecognizerIfNeeded() {
+        if (speechRecognizer != null) return
+
+        val isStrictOfflineAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+
+        speechRecognizer = if (isStrictOfflineAvailable) {
+            SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+        } else {
+            SpeechRecognizer.createSpeechRecognizer(context)
+        }
+    }
+
     override fun startListening(
         onPartial: (String) -> Unit,
         onResult: (String) -> Unit,
@@ -28,68 +93,26 @@ class NativeVoiceRecognizer(private val context: Context) : VoiceRecognizer {
                 Manifest.permission.RECORD_AUDIO
             )
             if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
-                onError("Microphone permission missing. Please enable it in system settings.")
+                onError("Microphone permission required.")
                 return@post
             }
 
             if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-                onError("Speech recognition framework is unavailable on this hardware target.")
+                onError("Voice recognition is unavailable on this device.")
                 return@post
             }
 
-            destroyInternal()
+            onPartialCallback = onPartial
+            onResultCallback = onResult
+            onErrorCallback = onError
 
-            val isStrictOfflineAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                    && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+            initRecognizerIfNeeded()
 
-            speechRecognizer = if (isStrictOfflineAvailable) {
-                SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-            } else {
-                SpeechRecognizer.createSpeechRecognizer(context)
-            }
-
-            speechRecognizer?.setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) {}
-                override fun onBeginningOfSpeech() {}
-                override fun onRmsChanged(rmsdB: Float) {}
-                override fun onBufferReceived(buffer: ByteArray?) {}
-                override fun onEndOfSpeech() {}
-
-                override fun onError(error: Int) {
-                    val message = when (error) {
-                        SpeechRecognizer.ERROR_AUDIO -> "Audio recording failure"
-                        SpeechRecognizer.ERROR_CLIENT -> "Client binding lost"
-                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permissions rejected by OS"
-                        SpeechRecognizer.ERROR_NETWORK -> "Network access required for this engine"
-                        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network operational timeout"
-                        SpeechRecognizer.ERROR_NO_MATCH -> "No speech recognized. Please try speaking again."
-                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Voice subsystem is busy. Wait a moment."
-                        SpeechRecognizer.ERROR_SERVER -> "Server processing exception dropped"
-                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech detected. Timed out."
-                        10 -> "Local language pack missing. Please check your device offline settings."
-                        else -> "Speech subsystem exception code: $error"
-                    }
-                    onError(message)
-                }
-
-                override fun onResults(results: Bundle?) {
-                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    if (!matches.isNullOrEmpty()) {
-                        onResult(matches[0])
-                    } else {
-                        onError("No text extracted from vocal sequence")
-                    }
-                }
-
-                override fun onPartialResults(partialResults: Bundle?) {
-                    val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    if (!matches.isNullOrEmpty()) {
-                        onPartial(matches[0])
-                    }
-                }
-
-                override fun onEvent(eventType: Int, params: Bundle?) {}
-            })
+            try {
+                speechRecognizer?.setRecognitionListener(null)
+                speechRecognizer?.cancel()
+                speechRecognizer?.setRecognitionListener(recognitionListener)
+            } catch (e: Exception) {}
 
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -102,7 +125,7 @@ class NativeVoiceRecognizer(private val context: Context) : VoiceRecognizer {
             try {
                 speechRecognizer?.startListening(intent)
             } catch (e: Exception) {
-                onError("Failed to start speech pipeline: ${e.message}")
+                onError("Failed to start mic: ${e.message}")
             }
         }
     }
@@ -111,26 +134,22 @@ class NativeVoiceRecognizer(private val context: Context) : VoiceRecognizer {
         Handler(Looper.getMainLooper()).post {
             try {
                 speechRecognizer?.stopListening()
-            } catch (e: Exception) {
-            }
-        }
-    }
-
-    private fun destroyInternal() {
-        speechRecognizer?.let {
-            try {
-                it.stopListening()
-                it.cancel()
-                it.destroy()
-            } catch (e: Exception) {
-            }
-            speechRecognizer = null
+            } catch (e: Exception) {}
         }
     }
 
     override fun destroy() {
         Handler(Looper.getMainLooper()).post {
-            destroyInternal()
+            try {
+                speechRecognizer?.setRecognitionListener(null)
+                speechRecognizer?.cancel()
+                speechRecognizer?.destroy()
+            } catch (e: Exception) {}
+
+            speechRecognizer = null
+            onPartialCallback = null
+            onResultCallback = null
+            onErrorCallback = null
         }
     }
 }
