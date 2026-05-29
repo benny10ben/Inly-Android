@@ -65,12 +65,11 @@ import dev.chrisbanes.haze.haze
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-import okio.Path.Companion.toPath
 
 private val HORIZONTAL_PADDING = 16.dp
 private val PANEL_PADDING = 16.dp
-private val DefaultCornerShape = RoundedCornerShape(6.dp)
-private val DesktopPanelShape = RoundedCornerShape(6.dp)
+private val DefaultCornerShape = RoundedCornerShape(12.dp)
+private val DesktopPanelShape = RoundedCornerShape(12.dp)
 
 // Mouse-wheel → horizontal scroll (desktop)
 @Composable
@@ -199,7 +198,15 @@ fun NotesScreen(
         }
     }
 
-    KmpBackHandler(enabled = isSelectionMode) { viewModel.clearSelection() }
+    // THE FIX: Handle folder back navigation gracefully alongside selection mode
+    KmpBackHandler(enabled = isSelectionMode || selectedFolderId != null) {
+        if (isSelectionMode) {
+            viewModel.clearSelection()
+        } else if (selectedFolderId != null) {
+            viewModel.navigateUp()
+        }
+    }
+
     LaunchedEffect(isSelectionMode) { onSelectionModeChange(isSelectionMode) }
     LaunchedEffect(searchQuery)     { viewModel.updateSearchQuery(searchQuery) }
 
@@ -327,7 +334,8 @@ fun NotesScreen(
 
                                             val currentIp = getLocalNetworkIp()
                                             val newToken = generateSecureToken()
-                                            val newEncryptionKey = generateSecureToken()
+
+                                            val newEncryptionKey = generateSecureToken() + generateSecureToken()
 
                                             settingsManager.saveSyncAuthToken(newToken)
                                             settingsManager.saveSyncEncryptionKey(newEncryptionKey)
@@ -648,6 +656,7 @@ fun NotesScreen(
                                     state = folderListState,
                                     contentPadding = PaddingValues(horizontal = HORIZONTAL_PADDING),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(vertical = 4.dp)
@@ -655,23 +664,18 @@ fun NotesScreen(
                                 ) {
                                     if (!isSelectionMode) {
                                         item {
-                                            // ── Add Folder anchor ───────────
-                                            Box {
-                                                FolderPill(
-                                                    name = "New",
-                                                    isSelected = false,
-                                                    isNewButton = true,
-                                                    onClick = {
-                                                        if (isDesktopPlatform) {
+                                            if (isDesktopPlatform) {
+                                                Box(modifier = Modifier.wrapContentSize(Alignment.TopStart).height(36.dp)) {
+                                                    FolderPill(
+                                                        name = "New",
+                                                        isSelected = false,
+                                                        isNewButton = true,
+                                                        onClick = {
                                                             addFolderInput = ""
                                                             showAddFolderPopup = true
-                                                        } else {
-                                                            showAddFolderDialog = true
-                                                        }
-                                                    },
-                                                    onLongClick = {}
-                                                )
-                                                if (isDesktopPlatform) {
+                                                        },
+                                                        onLongClick = {}
+                                                    )
                                                     DropdownMenu(
                                                         expanded = showAddFolderPopup,
                                                         onDismissRequest = { showAddFolderPopup = false },
@@ -679,90 +683,53 @@ fun NotesScreen(
                                                             .background(MaterialTheme.colorScheme.surface)
                                                             .width(280.dp)
                                                     ) {
-                                                        Column(
-                                                            modifier = Modifier.padding(
-                                                                horizontal = 16.dp,
-                                                                vertical = 12.dp
-                                                            )
-                                                        ) {
+                                                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                                                             Text(
-                                                                "New Folder",
-                                                                fontFamily = BricolageFont,
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontSize = 15.sp,
+                                                                "New Folder", fontFamily = BricolageFont,
+                                                                fontWeight = FontWeight.Bold, fontSize = 15.sp,
                                                                 color = MaterialTheme.colorScheme.onSurface,
                                                                 modifier = Modifier.padding(bottom = 10.dp)
                                                             )
                                                             OutlinedTextField(
                                                                 value = addFolderInput,
                                                                 onValueChange = { addFolderInput = it },
-                                                                placeholder = {
-                                                                    Text(
-                                                                        "e.g. Personal, Work...",
-                                                                        fontFamily = BricolageFont,
-                                                                        fontSize = 13.sp
-                                                                    )
-                                                                },
+                                                                placeholder = { Text("e.g. Personal, Work...", fontFamily = BricolageFont, fontSize = 13.sp) },
                                                                 singleLine = true,
                                                                 modifier = Modifier.fillMaxWidth(),
                                                                 shape = DefaultCornerShape,
-                                                                textStyle = TextStyle(
-                                                                    fontFamily = BricolageFont,
-                                                                    fontSize = 14.sp,
-                                                                    color = MaterialTheme.colorScheme.onSurface
-                                                                )
+                                                                textStyle = TextStyle(fontFamily = BricolageFont, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
                                                             )
-                                                            Row(
-                                                                modifier = Modifier
-                                                                    .fillMaxWidth()
-                                                                    .padding(top = 10.dp),
-                                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                            ) {
+                                                            Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                                 Button(
                                                                     onClick = { showAddFolderPopup = false },
-                                                                    modifier = Modifier
-                                                                        .weight(1f)
-                                                                        .height(38.dp),
+                                                                    modifier = Modifier.weight(1f).height(38.dp),
                                                                     shape = DefaultCornerShape,
-                                                                    colors = ButtonDefaults.buttonColors(
-                                                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                                                    ),
+                                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
                                                                     elevation = ButtonDefaults.buttonElevation(0.dp)
-                                                                ) {
-                                                                    Text(
-                                                                        "Cancel",
-                                                                        fontFamily = BricolageFont,
-                                                                        fontSize = 13.sp
-                                                                    )
-                                                                }
+                                                                ) { Text("Cancel", fontFamily = BricolageFont, fontSize = 13.sp) }
                                                                 Button(
-                                                                    onClick = {
-                                                                        if (addFolderInput.isNotBlank()) {
-                                                                            handleCreateFolder(addFolderInput.trim())
-                                                                            showAddFolderPopup = false
-                                                                        }
-                                                                    },
+                                                                    onClick = { if (addFolderInput.isNotBlank()) { handleCreateFolder(addFolderInput.trim()); showAddFolderPopup = false } },
                                                                     enabled = addFolderInput.isNotBlank(),
-                                                                    modifier = Modifier
-                                                                        .weight(1f)
-                                                                        .height(38.dp),
+                                                                    modifier = Modifier.weight(1f).height(38.dp),
                                                                     shape = DefaultCornerShape,
                                                                     elevation = ButtonDefaults.buttonElevation(0.dp)
-                                                                ) {
-                                                                    Text(
-                                                                        "Create",
-                                                                        fontFamily = BricolageFont,
-                                                                        fontSize = 13.sp
-                                                                    )
-                                                                }
+                                                                ) { Text("Create", fontFamily = BricolageFont, fontSize = 13.sp) }
                                                             }
                                                         }
                                                     }
                                                 }
+                                            } else {
+                                                FolderPill(
+                                                    name = "New",
+                                                    isSelected = false,
+                                                    isNewButton = true,
+                                                    onClick = { showAddFolderDialog = true },
+                                                    onLongClick = {}
+                                                )
                                             }
                                         }
                                     }
+
                                     items(subFolders, key = { it.folderId }) { folder ->
                                         FolderPill(
                                             name = folder.name,
@@ -874,6 +841,7 @@ fun NotesScreen(
     // Main Scaffold
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0),
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
@@ -1050,15 +1018,12 @@ fun NotesScreen(
                     onScanned = { pairingData ->
                         showMobileScannerDialog = false
 
-                        // Save the connection secrets!
                         settingsManager.saveSyncIpAddress(pairingData.ipAddress)
                         settingsManager.saveSyncPort(pairingData.port)
                         settingsManager.saveSyncAuthToken(pairingData.authToken)
 
-                        // SAVE THE ENCRYPTION KEY!
-                        settingsManager.saveSyncEncryptionKey(pairingData.encryptionKey) // <--- ADD THIS LINE!
+                        settingsManager.saveSyncEncryptionKey(pairingData.encryptionKey)
 
-                        // TELL THE USER IT WORKED!
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar("Paired with ${pairingData.ipAddress}!")
                         }
@@ -1249,7 +1214,8 @@ fun FolderPill(
         color = bgColor,
         contentColor = textColor,
         modifier = Modifier
-            .defaultMinSize(minHeight = 36.dp, minWidth = 72.dp)
+            .height(36.dp)
+            .defaultMinSize(minWidth = 72.dp)
             .clip(DefaultCornerShape)
             .combinedClickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1259,7 +1225,7 @@ fun FolderPill(
             )
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 0.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -1284,6 +1250,8 @@ fun NoteCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    val fileStorageManager: com.ben.inly.data.local.file.FileStorageManager = org.koin.compose.koinInject()
+
     val bgColor = when {
         isSelected        -> MaterialTheme.colorScheme.onSurface
         isDesktopPlatform -> MaterialTheme.colorScheme.background
@@ -1313,8 +1281,9 @@ fun NoteCard(
             // Cover image area
             Box(modifier = Modifier.fillMaxWidth().height(coverHeight)) {
                 if (note.coverImagePath != null) {
+                    val absolutePath = fileStorageManager.getAbsoluteMediaPath(note.coverImagePath)
                     AsyncImage(
-                        model = note.coverImagePath.removePrefix("file://").toPath(),
+                        model = java.io.File(absolutePath),
                         contentDescription = "Cover",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
