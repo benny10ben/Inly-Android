@@ -52,4 +52,81 @@ class SyncViewModel(
             }
         }
     }
+
+    fun triggerAutoSync(discoveryManager: com.ben.inly.sync.discovery.SyncDiscoveryManager) {
+        viewModelScope.launch {
+            val currentAuth = settingsManager.getSyncAuthToken()
+            if (currentAuth.isBlank()) return@launch
+
+            discoveryManager.startScanning()
+
+            var foundNewIp = false
+            for (i in 1..15) {
+                kotlinx.coroutines.delay(200)
+                val devices = discoveryManager.discoveredDevices.value
+                if (devices.isNotEmpty()) {
+                    settingsManager.saveSyncIpAddress(devices.first().ipAddress)
+                    foundNewIp = true
+                    break
+                }
+            }
+
+            discoveryManager.stopScanning()
+
+            performSilentSync()
+        }
+    }
+
+    private suspend fun performSilentSync() {
+        try {
+            _syncStatus.value = "Auto-Syncing..."
+
+            val client = SyncClient(settingsManager)
+            val remoteChanges = client.fetchChanges()
+            if (remoteChanges.isNotEmpty()) {
+                syncRepository.applyRemoteChanges(remoteChanges)
+            }
+
+            val localChanges = syncRepository.collectLocalChanges()
+            if (localChanges.isNotEmpty()) {
+                client.pushChanges(localChanges)
+            }
+            settingsManager.saveLastSyncTimestamp(System.currentTimeMillis())
+
+            _syncStatus.value = "Synced Successfully"
+        } catch (e: Exception) {
+            e.printStackTrace()
+            _syncStatus.value = "Sync Error: ${e.javaClass.simpleName}"
+        }
+    }
+
+    fun triggerFastSync() {
+        viewModelScope.launch {
+            val currentAuth = settingsManager.getSyncAuthToken()
+            if (currentAuth.isBlank()) return@launch
+
+            performSilentSync()
+        }
+    }
+
+    private var watchdogJob: kotlinx.coroutines.Job? = null
+
+    fun startForegroundWatchdog() {
+        if (watchdogJob?.isActive == true) return
+
+        watchdogJob = viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(1500L)
+
+                if (settingsManager.getSyncIpAddress().isNotBlank()) {
+                    performSilentSync()
+                }
+            }
+        }
+    }
+
+    fun stopForegroundWatchdog() {
+        watchdogJob?.cancel()
+        watchdogJob = null
+    }
 }
