@@ -135,12 +135,12 @@ class StandaloneEditorViewModel constructor(
 
     fun updateIcon(newIcon: String?) {
         _noteIcon.value = newIcon
-        scheduleAutosave()
+        viewModelScope.launch { performSave() }
     }
 
     fun toggleFavorite() {
         _isFavorite.value = !_isFavorite.value
-        scheduleAutosave()
+        viewModelScope.launch { performSave() }
     }
 
     fun handleCoverImagePicked(uriString: String) {
@@ -148,14 +148,14 @@ class StandaloneEditorViewModel constructor(
             val mediaInfo = mediaStorageHelper.copyUriToInternalStorage(uriString)
             if (mediaInfo != null) {
                 _coverImagePath.value = mediaInfo.localFileName
-                scheduleAutosave()
+                performSave()
             }
         }
     }
 
     fun removeCoverImage() {
         _coverImagePath.value = null
-        scheduleAutosave()
+        viewModelScope.launch { performSave() }
     }
 
     fun moveToTrash(onMoved: () -> Unit) {
