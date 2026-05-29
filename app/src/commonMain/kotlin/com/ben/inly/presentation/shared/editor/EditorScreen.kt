@@ -162,7 +162,9 @@ fun EditorScreen(
     ) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(
                 top = topContentPadding,
                 bottom = 60.dp + bottomContentPadding + toolbarOffset + 40.dp
@@ -237,6 +239,7 @@ fun EditorScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(240.dp)
+                        .background(MaterialTheme.colorScheme.background)
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onTap = {
