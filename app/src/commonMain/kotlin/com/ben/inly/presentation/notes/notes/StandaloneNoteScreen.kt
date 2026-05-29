@@ -248,7 +248,8 @@ fun StandaloneNoteScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .imePadding()
-                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                        .then(if (isDesktopPlatform) Modifier else Modifier.navigationBarsPadding())
+                        .padding(bottom = 12.dp, start = 16.dp, end = 16.dp)
                 ) {
                     EditorToolbar(
                         hazeState = hazeState,
@@ -299,7 +300,10 @@ fun StandaloneNoteScreen(
                     onAddBlockBelow = { viewModel.addBlockBelowSelection() },
                     onDelete = { viewModel.deleteSelectedBlocks() },
                     hazeState = hazeState,
-                    modifier = Modifier.align(Alignment.BottomCenter).imePadding()
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .imePadding()
+                        .then(if (isDesktopPlatform) Modifier.padding(bottom = 16.dp) else Modifier.navigationBarsPadding())
                 )
 
                 // Render BottomSheet on mobile ONLY
@@ -542,9 +546,10 @@ private fun NoteTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(top = 14.dp, start = 14.dp, end = 14.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .then(if (isDesktopPlatform) Modifier else Modifier.statusBarsPadding())
+            .padding(top = if (isDesktopPlatform) 14.dp else 18.dp, start = 16.dp, end = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         TopBarIconButton(
             icon = Icons.Default.ArrowBack,
@@ -587,7 +592,7 @@ private fun TopBarIconButton(
 ) {
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(44.dp)
             .background(bgColor, CircleShape)
             .clip(CircleShape)
             .clickable { onClick() },
@@ -597,7 +602,7 @@ private fun TopBarIconButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = tint,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(22.dp)
         )
     }
 }
