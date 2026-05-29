@@ -32,6 +32,14 @@ import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import org.koin.androidx.compose.KoinAndroidContext
 import java.util.UUID
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.ben.inly.domain.sync.AutoSyncTrigger
+import com.ben.inly.sync.discovery.SyncDiscoveryManager
+import com.ben.inly.presentation.shared.sync.SyncViewModel
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import org.koin.android.ext.android.get
 
 class MainActivity : ComponentActivity() {
 
@@ -51,6 +59,31 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleIntent(intent)
+
+        val syncViewModel: SyncViewModel = get()
+        val discoveryManager: SyncDiscoveryManager = get()
+
+        lifecycle.addObserver(LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    syncViewModel.triggerAutoSync(discoveryManager)
+                    syncViewModel.startForegroundWatchdog()
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    syncViewModel.stopForegroundWatchdog()
+                }
+                else -> {}
+            }
+        })
+
+        @OptIn(FlowPreview::class)
+        lifecycleScope.launch {
+            AutoSyncTrigger.syncRequests
+                .debounce(1500L)
+                .collect {
+                    syncViewModel.triggerFastSync()
+                }
+        }
 
         setContent {
             setSingletonImageLoaderFactory { context ->
