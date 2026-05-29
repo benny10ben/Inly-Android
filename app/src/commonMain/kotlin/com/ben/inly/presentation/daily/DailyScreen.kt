@@ -144,7 +144,6 @@ fun DailyScreen(
             }
     }
 
-
     LaunchedEffect(selectedDate) {
         val targetPage = initialPage + initialDate.daysUntil(selectedDate)
         if (pagerState.currentPage != targetPage && !pagerState.isScrollInProgress) {
@@ -255,7 +254,11 @@ fun DailyScreen(
 
     // RIGHT PANEL — pager + editor
     val rightPanelContent = @Composable {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
 
             if (isDesktopPlatform && !isSidebarVisible) {
                 IconButton(
@@ -288,6 +291,7 @@ fun DailyScreen(
                 state = pagerState,
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
                     .haze(state = hazeState),
                 beyondViewportPageCount = 1
             ) { page ->
@@ -310,83 +314,42 @@ fun DailyScreen(
                 val editorActions = remember(viewModel, onOpenFile) {
                     object : EditorActions {
                         override fun onClearFocusRequest() = viewModel.clearFocusRequest()
-                        override fun onUpdateText(id: String, text: String) =
-                            viewModel.updateBlockText(id, text)
-                        override fun onToggleCheckbox(id: String, checked: Boolean) =
-                            viewModel.toggleCheckbox(id, checked)
-                        override fun onToggleExpand(id: String) =
-                            viewModel.toggleToggleBlock(id)
-                        override fun onFocusBlock(id: String) =
-                            viewModel.setFocusedBlock(id)
-                        override fun onChangeBlockType(type: String) =
-                            viewModel.changeFocusedBlockType(type)
-                        override fun onToggleFormat(format: String) =
-                            viewModel.toggleFormat(format)
-                        override fun onAdjustIndentation(increase: Boolean) =
-                            viewModel.adjustIndentation(increase)
-                        override fun onEnterPressed(id: String, before: String, after: String) =
-                            viewModel.handleEnter(id, before, after)
-                        override fun onBackspaceOnEmpty(id: String) =
-                            viewModel.handleBackspaceOnEmpty(id)
-                        override fun onToggleSelection(id: String) =
-                            viewModel.toggleSelection(id)
-                        override fun onUpdateReminder(id: String, timestamp: Long?) =
-                            viewModel.updateReminder(id, timestamp)
-                        override fun onUrlSubmit(id: String, url: String) =
-                            viewModel.handleUrlSubmit(id, url)
-                        override fun onImagePicked(id: String, uri: String) =
-                            viewModel.handleImagePicked(id, uri)
-                        override fun onDocumentPicked(id: String, uri: String) =
-                            viewModel.handleDocumentPicked(id, uri)
-                        override fun onAddBlankBlock() =
-                            viewModel.addBlankBlockBelowFocused()
-                        override fun onInsertMediaBlock(type: String) =
-                            viewModel.insertNewMediaBlock(type)
+                        override fun onUpdateText(id: String, text: String) = viewModel.updateBlockText(id, text)
+                        override fun onToggleCheckbox(id: String, checked: Boolean) = viewModel.toggleCheckbox(id, checked)
+                        override fun onToggleExpand(id: String) = viewModel.toggleToggleBlock(id)
+                        override fun onFocusBlock(id: String) = viewModel.setFocusedBlock(id)
+                        override fun onChangeBlockType(type: String) = viewModel.changeFocusedBlockType(type)
+                        override fun onToggleFormat(format: String) = viewModel.toggleFormat(format)
+                        override fun onAdjustIndentation(increase: Boolean) = viewModel.adjustIndentation(increase)
+                        override fun onEnterPressed(id: String, before: String, after: String) = viewModel.handleEnter(id, before, after)
+                        override fun onBackspaceOnEmpty(id: String) = viewModel.handleBackspaceOnEmpty(id)
+                        override fun onToggleSelection(id: String) = viewModel.toggleSelection(id)
+                        override fun onUpdateReminder(id: String, timestamp: Long?) = viewModel.updateReminder(id, timestamp)
+                        override fun onUrlSubmit(id: String, url: String) = viewModel.handleUrlSubmit(id, url)
+                        override fun onImagePicked(id: String, uri: String) = viewModel.handleImagePicked(id, uri)
+                        override fun onDocumentPicked(id: String, uri: String) = viewModel.handleDocumentPicked(id, uri)
+                        override fun onAddBlankBlock() = viewModel.addBlankBlockBelowFocused()
+                        override fun onInsertMediaBlock(type: String) = viewModel.insertNewMediaBlock(type)
                         override fun onOutsideTap() {}
-                        override fun onUpdateDbTitle(id: String, title: String) =
-                            viewModel.updateDbTitle(id, title)
-                        override fun onAddDbRow(id: String) =
-                            viewModel.addDbRow(id)
-                        override fun onAddDbColumn(id: String) =
-                            viewModel.addDbColumn(id)
-                        override fun onUpdateDbCell(
-                            blockId: String, rowId: String, colId: String, value: String
-                        ) = viewModel.updateDbCell(blockId, rowId, colId, value)
-                        override fun onUpdateDbColumn(
-                            blockId: String, colId: String, name: String, type: ColumnType
-                        ) = viewModel.updateDbColumn(blockId, colId, name, type)
-                        override fun onUpdateDbSort(
-                            blockId: String, colId: String, isAscending: Boolean?
-                        ) = viewModel.updateDbSort(blockId, colId, isAscending)
-                        override fun onAddDbFilter(
-                            blockId: String, colId: String, operator: String, value: String
-                        ) = viewModel.addDbFilter(blockId, colId, operator, value)
-                        override fun onRemoveDbFilter(blockId: String, config: FilterConfig) =
-                            viewModel.removeDbFilter(blockId, config)
-                        override fun onReorderDbColumns(blockId: String, from: Int, to: Int) =
-                            viewModel.reorderDbColumns(blockId, from, to)
-                        override fun onUpdateDbFormula(
-                            blockId: String, colId: String, expression: String
-                        ) = viewModel.updateDbFormula(blockId, colId, expression)
-                        override fun onDeleteDbColumn(blockId: String, colId: String) =
-                            viewModel.deleteDbColumn(blockId, colId)
-                        override fun onDeleteDbRow(blockId: String, rowId: String) =
-                            viewModel.deleteDbRow(blockId, rowId)
-                        override fun onAddDbRowAt(blockId: String, index: Int) =
-                            viewModel.addDbRowAt(blockId, index)
-                        override fun onAddDbColumnAt(blockId: String, index: Int) =
-                            viewModel.addDbColumnAt(blockId, index)
-                        override fun onUpdateDbColumnWidth(
-                            blockId: String, colId: String, width: Int
-                        ) = viewModel.updateDbColumnWidth(blockId, colId, width)
-                        override fun onVoiceRecorded(id: String, filePath: String, duration: Int) =
-                            viewModel.handleVoiceRecorded(id, filePath, duration)
-                        override fun onRemoveVoice(id: String) =
-                            viewModel.handleRemoveVoice(id)
-                        override fun onDeleteImageBlock(id: String) =
-                            viewModel.deleteImageBlock(id)
-                        override fun onCreateGlobalTag(name: String, colorHex: String): String =
-                            viewModel.createGlobalTag(name, colorHex)
+                        override fun onUpdateDbTitle(id: String, title: String) = viewModel.updateDbTitle(id, title)
+                        override fun onAddDbRow(id: String) = viewModel.addDbRow(id)
+                        override fun onAddDbColumn(id: String) = viewModel.addDbColumn(id)
+                        override fun onUpdateDbCell(blockId: String, rowId: String, colId: String, value: String) = viewModel.updateDbCell(blockId, rowId, colId, value)
+                        override fun onUpdateDbColumn(blockId: String, colId: String, name: String, type: ColumnType) = viewModel.updateDbColumn(blockId, colId, name, type)
+                        override fun onUpdateDbSort(blockId: String, colId: String, isAscending: Boolean?) = viewModel.updateDbSort(blockId, colId, isAscending)
+                        override fun onAddDbFilter(blockId: String, colId: String, operator: String, value: String) = viewModel.addDbFilter(blockId, colId, operator, value)
+                        override fun onRemoveDbFilter(blockId: String, config: FilterConfig) = viewModel.removeDbFilter(blockId, config)
+                        override fun onReorderDbColumns(blockId: String, from: Int, to: Int) = viewModel.reorderDbColumns(blockId, from, to)
+                        override fun onUpdateDbFormula(blockId: String, colId: String, expression: String) = viewModel.updateDbFormula(blockId, colId, expression)
+                        override fun onDeleteDbColumn(blockId: String, colId: String) = viewModel.deleteDbColumn(blockId, colId)
+                        override fun onDeleteDbRow(blockId: String, rowId: String) = viewModel.deleteDbRow(blockId, rowId)
+                        override fun onAddDbRowAt(blockId: String, index: Int) = viewModel.addDbRowAt(blockId, index)
+                        override fun onAddDbColumnAt(blockId: String, index: Int) = viewModel.addDbColumnAt(blockId, index)
+                        override fun onUpdateDbColumnWidth(blockId: String, colId: String, width: Int) = viewModel.updateDbColumnWidth(blockId, colId, width)
+                        override fun onVoiceRecorded(id: String, filePath: String, duration: Int) = viewModel.handleVoiceRecorded(id, filePath, duration)
+                        override fun onRemoveVoice(id: String) = viewModel.handleRemoveVoice(id)
+                        override fun onDeleteImageBlock(id: String) = viewModel.deleteImageBlock(id)
+                        override fun onCreateGlobalTag(name: String, colorHex: String): String = viewModel.createGlobalTag(name, colorHex)
                         override fun onRequestImagePicker(blockId: String) {
                             onPickImage { path -> viewModel.handleImagePicked(blockId, path) }
                         }
@@ -396,14 +359,10 @@ fun DailyScreen(
                         override fun onOpenFile(filePath: String, mimeType: String) {
                             onOpenFile(filePath, mimeType)
                         }
-                        override fun onStartRecording() =
-                            viewModel.startHardwareRecording()
-                        override fun onStopRecording(blockId: String, cancel: Boolean) =
-                            viewModel.stopHardwareRecording(blockId, cancel)
-                        override fun onPlayAudio(filePath: String, onComplete: () -> Unit) =
-                            viewModel.playAudio(filePath, onComplete)
-                        override fun onStopAudio() =
-                            viewModel.stopAudio()
+                        override fun onStartRecording() = viewModel.startHardwareRecording()
+                        override fun onStopRecording(blockId: String, cancel: Boolean) = viewModel.stopHardwareRecording(blockId, cancel)
+                        override fun onPlayAudio(filePath: String, onComplete: () -> Unit) = viewModel.playAudio(filePath, onComplete)
+                        override fun onStopAudio() = viewModel.stopAudio()
                     }
                 }
 
@@ -417,7 +376,7 @@ fun DailyScreen(
                         hazeState = hazeState,
                         bottomContentPadding = bottomContentPadding,
                         topContentPadding = if (isDesktopPlatform) {
-                            if (!isSidebarVisible) 72.dp else 24.dp
+                            if (!isSidebarVisible) 72.dp else 16.dp
                         } else 0.dp
                     )
                 }
@@ -431,7 +390,8 @@ fun DailyScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .imePadding()
-                    .padding(horizontal = 8.dp, vertical = 8.dp)
+                    .then(if (isDesktopPlatform) Modifier else Modifier.navigationBarsPadding())
+                    .padding(bottom = 12.dp, start = 16.dp, end = 16.dp)
             ) {
                 EditorToolbar(
                     hazeState = hazeState,
@@ -458,7 +418,10 @@ fun DailyScreen(
                 onAddBlockBelow = { viewModel.addBlockBelowSelection() },
                 onDelete = { viewModel.deleteSelectedBlocks() },
                 hazeState = hazeState,
-                modifier = Modifier.align(Alignment.BottomCenter)
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .imePadding()
+                    .then(if (isDesktopPlatform) Modifier.padding(bottom = 16.dp) else Modifier.navigationBarsPadding())
             )
         }
     }
