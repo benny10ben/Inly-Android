@@ -7,5 +7,6 @@ data class SyncPairingData(
     val ipAddress: String,
     val port: Int,
     val authToken: String,
-    val encryptionKey: String
+    val encryptionKey: String,
+
 )
