@@ -1095,8 +1095,7 @@ fun ImageBlockView(
     onDelete: () -> Unit = {},
     onDownload: () -> Unit = {}
 ) {
-    // THE FIX 1: Grab the FileStorageManager to resolve paths dynamically
-    val fileStorageManager = koinInject<FileStorageManager>()
+    val fileStorageManager = koinInject<com.ben.inly.data.local.file.FileStorageManager>()
     var showFullScreen by remember { mutableStateOf(false) }
 
     if (block.localFilePath == null) {
@@ -1125,11 +1124,15 @@ fun ImageBlockView(
             }
         }
     } else {
-        // THE FIX 2: Resolve the absolute path for the current OS!
         val absolutePath = remember(block.localFilePath) {
             fileStorageManager.getAbsoluteMediaPath(block.localFilePath)
         }
-        val imageFile = remember(absolutePath) { File(absolutePath) }
+        val imageFile = remember(absolutePath) { java.io.File(absolutePath) }
+
+        val request = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
+            .data(imageFile)
+            .memoryCacheKey("$absolutePath-${imageFile.lastModified()}")
+            .build()
 
         Box(
             modifier = Modifier
@@ -1149,8 +1152,7 @@ fun ImageBlockView(
                 )
         ) {
             coil3.compose.AsyncImage(
-                // THE FIX 3: Pass the resolved File object directly to Coil
-                model = imageFile,
+                model = request,
                 contentDescription = "Note Image",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -1165,9 +1167,9 @@ fun ImageBlockView(
             val pillColor = LocalInlyExtendedColors.current.variant1.copy(alpha = 0.45f)
             val tint = if (isDark) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
 
-            Dialog(
+            androidx.compose.ui.window.Dialog(
                 onDismissRequest = { showFullScreen = false },
-                properties = DialogProperties(usePlatformDefaultWidth = false)
+                properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
             ) {
                 val dialogHazeState = remember { HazeState() }
 
@@ -1178,8 +1180,7 @@ fun ImageBlockView(
                             .haze(state = dialogHazeState)
                     ) {
                         coil3.compose.AsyncImage(
-                            // THE FIX 4: Apply it to the full-screen dialog as well
-                            model = imageFile,
+                            model = request,
                             contentDescription = "Full Screen Image",
                             modifier = Modifier
                                 .fillMaxSize()
@@ -1215,8 +1216,6 @@ fun ImageBlockView(
                             contentScale = ContentScale.Fit
                         )
                     }
-
-                    // ... (Keep the rest of your Full Screen Dialog UI exactly as is)
 
                     Row(
                         modifier = Modifier
