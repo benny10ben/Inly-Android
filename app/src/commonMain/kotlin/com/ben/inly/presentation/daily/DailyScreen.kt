@@ -140,7 +140,6 @@ fun DailyScreen(
 
     val globalTags by viewModel.globalTags.collectAsState()
 
-    // ── Added Dialog States for UserSettings ──
     var showNotesMenu by remember { mutableStateOf(false) }
     var showPairingDialog by remember { mutableStateOf(false) }
     var activePairingData by remember { mutableStateOf<SyncPairingData?>(null) }
@@ -755,7 +754,6 @@ private fun StaticDateHeader(
                     )
                 }
 
-                // ── FIXED USER SETTINGS ICON FOR DAILY SCREEN ──
                 Box(contentAlignment = Alignment.Center) {
                     Box(
                         modifier = Modifier
