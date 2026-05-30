@@ -20,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -28,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ben.inly.domain.util.isDesktopPlatform
 import com.ben.inly.presentation.shared.components.InlyBottomSheet
-import com.ben.inly.ui.theme.BricolageFont
+import com.ben.inly.ui.theme.PoppinsFont
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import kotlin.math.abs
@@ -51,58 +52,58 @@ fun ReminderPresetMenu(
             modifier = Modifier.background(MaterialTheme.colorScheme.surface).width(DesktopMenuWidth)
         ) {
             DropdownMenuItem(
-                text = { Text("Later today", fontFamily = BricolageFont) },
+                text = { Text("Later today", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal) },
                 leadingIcon = { Icon(Icons.Default.Today, null) },
                 onClick = { onPresetSelected(getDatePresetTime(DatePresetType.LATER_TODAY)); onDismiss() }
             )
             DropdownMenuItem(
-                text = { Text("Tomorrow", fontFamily = BricolageFont) },
+                text = { Text("Tomorrow", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal) },
                 leadingIcon = { Icon(Icons.Default.Event, null) },
                 onClick = { onPresetSelected(getDatePresetTime(DatePresetType.TOMORROW)); onDismiss() }
             )
             DropdownMenuItem(
-                text = { Text("This weekend", fontFamily = BricolageFont) },
+                text = { Text("This weekend", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal) },
                 leadingIcon = { Icon(Icons.Default.Weekend, null) },
                 onClick = { onPresetSelected(getDatePresetTime(DatePresetType.THIS_WEEKEND)); onDismiss() }
             )
             DropdownMenuItem(
-                text = { Text("Next week", fontFamily = BricolageFont) },
+                text = { Text("Next week", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal) },
                 leadingIcon = { Icon(Icons.Default.NextWeek, null) },
                 onClick = { onPresetSelected(getDatePresetTime(DatePresetType.NEXT_WEEK)); onDismiss() }
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp, horizontal = 12.dp))
             DropdownMenuItem(
-                text = { Text("Custom date...", fontFamily = BricolageFont) },
+                text = { Text("Custom date...", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal) },
                 leadingIcon = { Icon(Icons.Default.CalendarMonth, null) },
                 onClick = { onCustomSelected(); onDismiss() }
             )
             if (onRemove != null) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp, horizontal = 12.dp))
                 DropdownMenuItem(
-                    text = { Text("Remove reminder", fontFamily = BricolageFont, color = MaterialTheme.colorScheme.error) },
+                    text = { Text("Remove reminder", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.error) },
                     leadingIcon = { Icon(Icons.Default.NotificationsOff, null, tint = MaterialTheme.colorScheme.error) },
                     onClick = { onRemove(); onDismiss() }
                 )
             }
         }
     } else {
-        InlyBottomSheet(expanded = expanded, onDismiss = onDismiss, title = "Date") { closeAnd ->
-            PresetSheetItem(Icons.Default.Today, "Later today") { closeAnd { onPresetSelected(getDatePresetTime(DatePresetType.LATER_TODAY)) } }
-            PresetSheetItem(Icons.Default.Event, "Tomorrow") { closeAnd { onPresetSelected(getDatePresetTime(DatePresetType.TOMORROW)) } }
-            PresetSheetItem(Icons.Default.Weekend, "This weekend") { closeAnd { onPresetSelected(getDatePresetTime(DatePresetType.THIS_WEEKEND)) } }
-            PresetSheetItem(Icons.Default.NextWeek, "Next week") { closeAnd { onPresetSelected(getDatePresetTime(DatePresetType.NEXT_WEEK)) } }
+        InlyBottomSheet(expanded = expanded, onDismiss = onDismiss, title = "Date") {
+            PresetSheetItem(Icons.Default.Today, "Later today") { onPresetSelected(getDatePresetTime(DatePresetType.LATER_TODAY)); onDismiss() }
+            PresetSheetItem(Icons.Default.Event, "Tomorrow") { onPresetSelected(getDatePresetTime(DatePresetType.TOMORROW)); onDismiss() }
+            PresetSheetItem(Icons.Default.Weekend, "This weekend") { onPresetSelected(getDatePresetTime(DatePresetType.THIS_WEEKEND)); onDismiss() }
+            PresetSheetItem(Icons.Default.NextWeek, "Next week") { onPresetSelected(getDatePresetTime(DatePresetType.NEXT_WEEK)); onDismiss() }
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp, horizontal = 20.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-            PresetSheetItem(Icons.Default.CalendarMonth, "Custom date...") { closeAnd { onCustomSelected() } }
+            PresetSheetItem(Icons.Default.CalendarMonth, "Custom date...") { onCustomSelected(); onDismiss() }
             if (onRemove != null) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp, horizontal = 20.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                PresetSheetItem(Icons.Default.NotificationsOff, "Remove reminder", isDestructive = true) { closeAnd { onRemove() } }
+                PresetSheetItem(Icons.Default.NotificationsOff, "Remove reminder", isDestructive = true) { onRemove(); onDismiss() }
             }
             Button(
-                onClick = { closeAnd(onDismiss) },
+                onClick = { onDismiss() },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).height(48.dp),
                 shape = PopupButtonShape,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
-            ) { Text("Close", fontFamily = BricolageFont, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
+            ) { Text("Close", fontFamily = PoppinsFont, fontWeight = FontWeight.Medium, fontSize = 15.sp) }
         }
     }
 }
@@ -121,46 +122,46 @@ fun TimePresetMenu(
             modifier = Modifier.background(MaterialTheme.colorScheme.surface).width(DesktopMenuWidth)
         ) {
             DropdownMenuItem(
-                text = { Text("In 15 mins", fontFamily = BricolageFont) },
+                text = { Text("In 15 mins", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal) },
                 leadingIcon = { Icon(Icons.Default.Timer, null) },
                 onClick = { onPresetSelected(getTimePreset(TimePresetType.IN_15_MINS)); onDismiss() }
             )
             DropdownMenuItem(
-                text = { Text("In 1 hour", fontFamily = BricolageFont) },
+                text = { Text("In 1 hour", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal) },
                 leadingIcon = { Icon(Icons.Default.Schedule, null) },
                 onClick = { onPresetSelected(getTimePreset(TimePresetType.IN_1_HOUR)); onDismiss() }
             )
             DropdownMenuItem(
-                text = { Text("In 3 hours", fontFamily = BricolageFont) },
+                text = { Text("In 3 hours", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal) },
                 leadingIcon = { Icon(Icons.Default.AccessTime, null) },
                 onClick = { onPresetSelected(getTimePreset(TimePresetType.IN_3_HOURS)); onDismiss() }
             )
             DropdownMenuItem(
-                text = { Text("This evening", fontFamily = BricolageFont) },
+                text = { Text("This evening", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal) },
                 leadingIcon = { Icon(Icons.Default.NightsStay, null) },
                 onClick = { onPresetSelected(getTimePreset(TimePresetType.THIS_EVENING)); onDismiss() }
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp, horizontal = 12.dp))
             DropdownMenuItem(
-                text = { Text("Custom time...", fontFamily = BricolageFont) },
+                text = { Text("Custom time...", fontFamily = PoppinsFont, fontWeight = FontWeight.Normal) },
                 leadingIcon = { Icon(Icons.Default.AccessTime, null) },
                 onClick = { onCustomSelected(); onDismiss() }
             )
         }
     } else {
-        InlyBottomSheet(expanded = expanded, onDismiss = onDismiss, title = "Time") { closeAnd ->
-            PresetSheetItem(Icons.Default.Timer, "In 15 mins") { closeAnd { onPresetSelected(getTimePreset(TimePresetType.IN_15_MINS)) } }
-            PresetSheetItem(Icons.Default.Schedule, "In 1 hour") { closeAnd { onPresetSelected(getTimePreset(TimePresetType.IN_1_HOUR)) } }
-            PresetSheetItem(Icons.Default.AccessTime, "In 3 hours") { closeAnd { onPresetSelected(getTimePreset(TimePresetType.IN_3_HOURS)) } }
-            PresetSheetItem(Icons.Default.NightsStay, "This evening") { closeAnd { onPresetSelected(getTimePreset(TimePresetType.THIS_EVENING)) } }
+        InlyBottomSheet(expanded = expanded, onDismiss = onDismiss, title = "Time") {
+            PresetSheetItem(Icons.Default.Timer, "In 15 mins") { onPresetSelected(getTimePreset(TimePresetType.IN_15_MINS)); onDismiss() }
+            PresetSheetItem(Icons.Default.Schedule, "In 1 hour") { onPresetSelected(getTimePreset(TimePresetType.IN_1_HOUR)); onDismiss() }
+            PresetSheetItem(Icons.Default.AccessTime, "In 3 hours") { onPresetSelected(getTimePreset(TimePresetType.IN_3_HOURS)); onDismiss() }
+            PresetSheetItem(Icons.Default.NightsStay, "This evening") { onPresetSelected(getTimePreset(TimePresetType.THIS_EVENING)); onDismiss() }
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp, horizontal = 20.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-            PresetSheetItem(Icons.Default.AccessTime, "Custom time...") { closeAnd { onCustomSelected() } }
+            PresetSheetItem(Icons.Default.AccessTime, "Custom time...") { onCustomSelected(); onDismiss() }
             Button(
-                onClick = { closeAnd(onDismiss) },
+                onClick = { onDismiss() },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).height(48.dp),
                 shape = PopupButtonShape,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
-            ) { Text("Close", fontFamily = BricolageFont, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
+            ) { Text("Close", fontFamily = PoppinsFont, fontWeight = FontWeight.Medium, fontSize = 15.sp) }
         }
     }
 }
@@ -175,7 +176,7 @@ private fun PresetSheetItem(icon: ImageVector, text: String, isDestructive: Bool
     ) {
         Icon(imageVector = icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = text, fontFamily = BricolageFont, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = textColor)
+        Text(text = text, fontFamily = PoppinsFont, fontSize = 15.sp, fontWeight = FontWeight.Normal, color = textColor)
     }
 }
 
@@ -190,26 +191,63 @@ fun MinimalDatePickerDialog(
     val seedMillis = initialTimestamp ?: System.currentTimeMillis()
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = seedMillis)
 
+    val customDatePickerColors = DatePickerDefaults.colors(
+        containerColor = Color.Transparent,
+        selectedDayContainerColor = MaterialTheme.colorScheme.primary,
+        selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
+        todayContentColor = MaterialTheme.colorScheme.primary,
+        todayDateBorderColor = MaterialTheme.colorScheme.primary,
+        dayContentColor = MaterialTheme.colorScheme.onSurface,
+        weekdayContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        disabledDayContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+    )
+
     if (isDesktopPlatform) {
         DropdownMenu(expanded = expanded, onDismissRequest = onDismiss, modifier = Modifier.background(MaterialTheme.colorScheme.surface).width(360.dp)) {
             val currentDensity = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density = currentDensity.density * 0.85f, fontScale = currentDensity.fontScale)) {
-                DatePicker(state = datePickerState, showModeToggle = false, title = null, headline = null)
+                DatePicker(
+                    state = datePickerState,
+                    showModeToggle = false,
+                    title = null,
+                    headline = null,
+                    colors = customDatePickerColors
+                )
             }
             Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
-                TextButton(onClick = { datePickerState.selectedDateMillis?.let { onConfirm(it) }; onDismiss() }) { Text("Save") }
+                TextButton(onClick = onDismiss) { Text("Cancel", fontWeight = FontWeight.Medium) }
+                TextButton(onClick = { datePickerState.selectedDateMillis?.let { onConfirm(it) }; onDismiss() }) { Text("Save", fontWeight = FontWeight.Medium) }
             }
         }
     } else {
-        InlyBottomSheet(expanded = expanded, onDismiss = onDismiss, title = "Select Date") { closeAnd ->
+        InlyBottomSheet(expanded = expanded, onDismiss = onDismiss, title = "Select Date") {
             val currentDensity = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density = currentDensity.density * 0.85f, fontScale = currentDensity.fontScale)) {
-                DatePicker(state = datePickerState, showModeToggle = false, title = null, headline = null)
+                DatePicker(
+                    state = datePickerState,
+                    showModeToggle = false,
+                    title = null,
+                    headline = null,
+                    colors = customDatePickerColors
+                )
             }
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { closeAnd(onDismiss) }, modifier = Modifier.weight(1f).height(48.dp), shape = PopupButtonShape, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)) { Text("Cancel", fontFamily = BricolageFont, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
-                Button(onClick = { closeAnd { datePickerState.selectedDateMillis?.let { onConfirm(it) } } }, modifier = Modifier.weight(1f).height(48.dp), shape = PopupButtonShape, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)) { Text("Save", fontFamily = BricolageFont, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
+                Button(
+                    onClick = { onDismiss() },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = PopupButtonShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)
+                ) { Text("Cancel", fontFamily = PoppinsFont, fontWeight = FontWeight.Medium, fontSize = 15.sp) }
+
+                Button(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { onConfirm(it) }
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = PopupButtonShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
+                ) { Text("Save", fontFamily = PoppinsFont, fontWeight = FontWeight.Medium, fontSize = 15.sp) }
             }
         }
     }
@@ -237,7 +275,7 @@ fun MinimalTimePickerDialog(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
-                modifier = if (isDesktopPlatform) Modifier else Modifier.fillMaxWidth(0.8f),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -247,11 +285,11 @@ fun MinimalTimePickerDialog(
 
                 Text(
                     text = ":",
-                    fontFamily = BricolageFont,
+                    fontFamily = PoppinsFont,
                     fontSize = 20.sp,
                     modifier = Modifier.padding(horizontal = 4.dp).offset(y = (-4).dp),
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Medium
                 )
 
                 WheelPicker(items = (0..59).map { it.toString().padStart(2, '0') }, selectedIndex = minute, onItemSelected = { minute = it }, itemHeight = pickerItemHeight)
@@ -263,23 +301,35 @@ fun MinimalTimePickerDialog(
         DropdownMenu(expanded = expanded, onDismissRequest = onDismiss, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
             content()
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text("Cancel", fontWeight = FontWeight.Medium) }
                 TextButton(onClick = {
                     val finalHour = when { isAm && hour == 12 -> 0; !isAm && hour < 12 -> hour + 12; else -> hour }
                     onConfirm(finalHour, minute)
                     onDismiss()
-                }) { Text("Save") }
+                }) { Text("Save", fontWeight = FontWeight.Medium) }
             }
         }
     } else {
-        InlyBottomSheet(expanded = expanded, onDismiss = onDismiss, title = "Select Time") { closeAnd ->
+        InlyBottomSheet(expanded = expanded, onDismiss = onDismiss, title = "Select Time") {
             content()
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { closeAnd(onDismiss) }, modifier = Modifier.weight(1f).height(48.dp), shape = PopupButtonShape, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)) { Text("Cancel", fontFamily = BricolageFont, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
-                Button(onClick = {
-                    val finalHour = when { isAm && hour == 12 -> 0; !isAm && hour < 12 -> hour + 12; else -> hour }
-                    closeAnd { onConfirm(finalHour, minute) }
-                }, modifier = Modifier.weight(1f).height(48.dp), shape = PopupButtonShape, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)) { Text("Save", fontFamily = BricolageFont, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
+                Button(
+                    onClick = { onDismiss() },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = PopupButtonShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)
+                ) { Text("Cancel", fontFamily = PoppinsFont, fontWeight = FontWeight.Medium, fontSize = 15.sp) }
+
+                Button(
+                    onClick = {
+                        val finalHour = when { isAm && hour == 12 -> 0; !isAm && hour < 12 -> hour + 12; else -> hour }
+                        onConfirm(finalHour, minute)
+                        onDismiss()
+                    },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = PopupButtonShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
+                ) { Text("Save", fontFamily = PoppinsFont, fontWeight = FontWeight.Medium, fontSize = 15.sp) }
             }
         }
     }
@@ -349,9 +399,9 @@ fun WheelPicker(
             ) {
                 Text(
                     text = items[index],
-                    fontFamily = BricolageFont,
+                    fontFamily = PoppinsFont,
                     fontSize = animatedFontSize.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
                     color = animatedColor
                 )
             }
