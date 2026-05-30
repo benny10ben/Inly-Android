@@ -8,25 +8,20 @@ import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
-import coil3.util.DebugLogger
 import com.ben.inly.data.local.prefs.SettingsManager
 import com.ben.inly.di.desktopModule
 import com.ben.inly.di.sharedModule
-import com.ben.inly.domain.sync.AutoSyncTrigger
 import com.ben.inly.domain.sync.SyncRepository
 import com.ben.inly.presentation.InlyApp
-import com.ben.inly.presentation.shared.sync.SyncViewModel
 import com.ben.inly.sync.startSyncServer
 import com.ben.inly.ui.theme.InlyTheme
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import java.awt.FileDialog
 import java.awt.Frame
 import java.awt.Desktop
 import java.io.File
+import androidx.compose.ui.res.painterResource
 
 fun main(args: Array<String>) = application {
 
@@ -57,7 +52,8 @@ fun main(args: Array<String>) = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "Inly",
-        state = rememberWindowState(width = 1200.dp, height = 800.dp)
+        state = rememberWindowState(width = 1200.dp, height = 800.dp),
+        icon = painterResource("app_icon.png")
     ) {
         InlyTheme {
             InlyApp(
